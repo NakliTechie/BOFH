@@ -6,7 +6,7 @@ Named after the [Bastard Operator From Hell](https://en.wikipedia.org/wiki/Basta
 
 > *Stop pasting your secrets into the internet.*
 
-Open in browser → [naklitechie.github.io/BOFH](https://naklitechie.github.io/BOFH/) *(once published)*
+Open in browser → [bofh.naklitechie.com](https://bofh.naklitechie.com/)
 
 ---
 

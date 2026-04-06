@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="author" content="Chirag Patnaik">
+<meta name="description" content="BOFH — Browser-Native Dev Toolkit. JSON, JWT, Base64, regex, hashing, and more. Everything runs locally. No data leaves your device.">
+<title>BOFH — Browser-Native Dev Toolkit</title>
+<link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111418'/%3E%3Ctext x='16' y='21' font-family='ui-monospace,Menlo,monospace' font-size='14' font-weight='700' text-anchor='middle' fill='%23ff7a45'%3EB%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #0f1115;
+  --bg-2: #161a21;
+  --bg-3: #1d222b;
+  --border: #2a3140;
+  --border-2: #3a4358;
+  --text: #e6e8eb;
+  --text-dim: #9aa3b2;
+  --text-faint: #6b7382;
+  --accent: #ff7a45;
+  --accent-dim: #c25a30;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --err: #f87171;
+  --link: #60a5fa;
+  --mono: ui-monospace, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-2: #f5f6f8;
+  --bg-3: #ebedf1;
+  --border: #d9dde4;
+  --border-2: #b8bfcc;
+  --text: #1a1d22;
+  --text-dim: #5a6271;
+  --text-faint: #8a93a3;
+  --accent: #d65a25;
+  --accent-dim: #a14418;
+  --link: #0366d6;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ----- Layout ----- */
+#app { display: flex; height: 100vh; }
+#sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#sidebar-head {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-mark {
+  display: inline-block;
+  width: 22px; height: 22px;
+  background: var(--accent);
+  color: #111;
+  text-align: center;
+  line-height: 22px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.brand-tag {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+#search-wrap { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+#search {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  padding: 6px 9px;
+  border-radius: 5px;
+  outline: none;
+}
+#search:focus { border-color: var(--accent); }
+#nav { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
+.nav-group { padding: 8px 0 2px; }
+.nav-group-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 6px 14px 4px;
+  font-weight: 600;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 13px;
+  border-left: 2px solid transparent;
+  user-select: none;
+}
+.nav-item:hover { background: var(--bg-3); color: var(--text); }
+.nav-item.active {
+  background: var(--bg-3);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-icon { font-family: var(--mono); font-size: 12px; width: 16px; text-align: center; opacity: 0.75; }
+.nav-item.hidden { display: none; }
+.nav-group.empty { display: none; }
+
+#sidebar-foot {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+}
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--border-2); }
+
+#main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+#main-head {
+  padding: 14px 22px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.module-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+.module-desc {
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+#main-body {
+  flex: 1;
+  overflow: auto;
+  padding: 18px 22px 70px;
+}
+
+/* ----- Common module elements ----- */
+.row { display: flex; gap: 12px; }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+textarea, input[type=text], input[type=number], select {
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 9px 11px;
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+}
+textarea { min-height: 180px; line-height: 1.45; }
+textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+.btn {
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--border-2); background: var(--bg-2); }
+.btn-primary {
+  background: var(--accent);
+  color: #111;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); color: #fff; }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.spacer { flex: 1; }
+.status {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text-faint);
+}
+.status.ok { color: var(--ok); }
+.status.err { color: var(--err); }
+.status.warn { color: var(--warn); }
+.error-box {
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.35);
+  color: var(--err);
+  padding: 8px 11px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.kv .k { color: var(--text-faint); }
+.kv .v { color: var(--text); word-break: break-all; }
+.kv .v.ok { color: var(--ok); }
+.kv .v.err { color: var(--err); }
+.kv .v.warn { color: var(--warn); }
+.pre-out {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 11px 13px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+  min-height: 80px;
+  margin: 0;
+  max-height: 600px;
+  overflow: auto;
+}
+.tag {
+  display: inline-block;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1px 9px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  margin-right: 4px;
+}
+.tag.ok { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: var(--ok); }
+.tag.err { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.35); color: var(--err); }
+.tag.warn { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.35); color: var(--warn); }
+hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ----- JSON tree ----- */
+.json-tree { font-family: var(--mono); font-size: 12.5px; line-height: 1.55; }
+.json-tree ul { list-style: none; margin: 0; padding-left: 18px; }
+.json-tree .toggle { cursor: pointer; user-select: none; color: var(--text-faint); display: inline-block; width: 12px; }
+.json-tree .key { color: var(--accent); }
+.json-tree .str { color: #a7e3a0; }
+.json-tree .num { color: #f4b860; }
+.json-tree .bool { color: #c084fc; }
+.json-tree .null { color: var(--text-faint); }
+.json-tree .punct { color: var(--text-faint); }
+.json-tree li.collapsed > ul { display: none; }
+.json-tree li.collapsed > .summary { color: var(--text-faint); margin-left: 4px; font-style: italic; }
+.json-tree li:not(.collapsed) > .summary { display: none; }
+
+/* ----- JWT segments ----- */
+.jwt-display {
+  font-family: var(--mono);
+  font-size: 13px;
+  word-break: break-all;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 11px;
+  line-height: 1.6;
+}
+.jwt-display .seg-h { color: var(--err); }
+.jwt-display .seg-p { color: #c084fc; }
+.jwt-display .seg-s { color: var(--link); }
+
+/* ----- UUID list ----- */
+.uuid-list {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 11px;
+  max-height: 360px;
+  overflow: auto;
+}
+.uuid-list .row { display: block; padding: 1px 0; }
+
+/* ----- Modal ----- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 540px;
+  width: calc(100% - 40px);
+  max-height: 80vh;
+  overflow: auto;
+  padding: 22px 26px;
+  box-shadow: 0 12px 50px rgba(0,0,0,0.5);
+}
+.modal h2 { margin: 0 0 6px; font-size: 18px; }
+.modal h3 { margin: 14px 0 6px; font-size: 13.5px; color: var(--text); }
+.modal p, .modal li { font-size: 13px; color: var(--text-dim); }
+.modal ul { padding-left: 18px; margin: 6px 0; }
+.modal-foot {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.modal-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 8px 0 14px;
+  overflow-x: auto;
+}
+.modal-tabs::-webkit-scrollbar { display: none; }
+.modal-tab {
+  background: transparent;
+  border: 0;
+  padding: 7px 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12.5px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  font-family: var(--sans);
+}
+.modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.modal-pane { display: none; }
+.modal-pane.active { display: block; }
+
+/* ----- Toast ----- */
+#toast {
+  position: fixed;
+  bottom: 60px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-3);
+  color: var(--text);
+  padding: 8px 16px;
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  font-size: 12.5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 200;
+}
+#toast.show { opacity: 1; }
+
+/* ----- Footer ----- */
+.footer-nav {
+  position: fixed;
+  bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 24px;
+  background: rgba(22,26,33,0.92);
+  padding: 6px 18px;
+  border-radius: 20px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  font-size: 11.5px;
+  border: 1px solid var(--border);
+  z-index: 50;
+}
+[data-theme="light"] .footer-nav {
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+.footer-nav a { color: var(--link); text-decoration: none; }
+.footer-nav a:hover { text-decoration: underline; }
+
+/* ----- Mobile ----- */
+#sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 10px; left: 10px;
+  z-index: 60;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 11px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  #sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 55;
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+  }
+  #sidebar.open { transform: translateX(0); }
+  #sidebar-toggle { display: block; }
+  #main-head { padding-left: 56px; }
+  #main-body { padding: 16px 14px 90px; }
+  .row { flex-direction: column; }
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="app">
+  <aside id="sidebar">
+    <div id="sidebar-head">
+      <div class="brand"><span class="brand-mark">B</span> BOFH</div>
+      <div class="brand-tag">Browser-native dev toolkit. Nothing leaves your device.</div>
+    </div>
+    <div id="search-wrap"><input id="search" placeholder="Filter modules…" autocomplete="off" spellcheck="false"></div>
+    <nav id="nav"></nav>
+    <div id="sidebar-foot">
+      <button class="icon-btn" id="theme-btn" title="Toggle theme">◐</button>
+      <button class="icon-btn" id="help-btn" title="Help">?</button>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="clear-btn" title="Clear all stored state">⌫</button>
+    </div>
+  </aside>
+
+  <main id="main">
+    <div id="main-head">
+      <div class="module-title" id="m-title">—</div>
+      <div class="module-desc" id="m-desc"></div>
+    </div>
+    <div id="main-body"></div>
+  </main>
+</div>
+
+<button id="sidebar-toggle" title="Menu">☰</button>
+
+<!-- Intro modal -->
+<div class="modal-overlay" id="intro-overlay">
+  <div class="modal">
+    <h2>BOFH</h2>
+    <p style="font-size:13.5px; color:var(--text);">Browser-native dev toolkit. <strong>Nothing leaves your device.</strong></p>
+    <h3>What's in here</h3>
+    <ul>
+      <li><strong>JSON</strong> — format, validate, tree-view, JSONPath</li>
+      <li><strong>JWT</strong> — decode header/payload, verify HS256/RS256, check expiry</li>
+      <li><strong>Base64</strong> — encode/decode text and files, URL-safe variant</li>
+      <li><strong>Timestamp</strong> — Unix epoch ↔ human, timezone-aware, relative</li>
+      <li><strong>UUID</strong> — generate v4 / v7, bulk, validate</li>
+    </ul>
+    <p style="font-size:12.5px;">More modules coming. Every transformation runs locally — no servers, no telemetry, no random S3 buckets seeing your tokens.</p>
+    <div class="modal-foot">
+      <button class="btn" onclick="window.open('https://github.com/NakliTechie/BOFH','_blank'); dismissIntro();">Source</button>
+      <button class="btn btn-primary" onclick="dismissIntro()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help modal -->
+<div class="modal-overlay" id="help-overlay">
+  <div class="modal">
+    <h2>Help & shortcuts</h2>
+    <div class="modal-tabs" id="help-tabs">
+      <button class="modal-tab active" data-tab="general">General</button>
+      <button class="modal-tab" data-tab="modules">Modules</button>
+      <button class="modal-tab" data-tab="privacy">Privacy</button>
+    </div>
+    <div class="modal-pane active" data-pane="general">
+      <h3>Keyboard</h3>
+      <ul>
+        <li><code>/</code> — focus the module filter</li>
+        <li><code>?</code> — open this help</li>
+        <li><code>Esc</code> — close modal / blur input</li>
+      </ul>
+      <h3>State</h3>
+      <p>Each module saves its last input and settings to <code>localStorage</code> under namespaced keys (<code>bofh:&lt;module&gt;:…</code>). Use the <code>⌫</code> button in the sidebar foot to wipe everything.</p>
+      <h3>Linkable tabs</h3>
+      <p>Each module has a hash URL (<code>#json</code>, <code>#jwt</code>, …) so you can bookmark or share a tab.</p>
+    </div>
+    <div class="modal-pane" data-pane="modules">
+      <h3>JSON</h3>
+      <p>Paste or drop JSON. Format, minify, validate, or browse as a collapsible tree. JSONPath (subset) supports <code>$</code>, dot/bracket paths, and array indices.</p>
+      <h3>JWT</h3>
+      <p>Decode any JWT. Verify HS256 by typing the secret. Verify RS256 by pasting the issuer's public key in PEM (<code>-----BEGIN PUBLIC KEY-----</code>). Expiry and "not before" are checked automatically.</p>
+      <h3>Base64</h3>
+      <p>Text mode encodes UTF-8. File mode reads any file as bytes. URL-safe toggle uses <code>-_</code> instead of <code>+/</code> and strips padding.</p>
+      <h3>Timestamp</h3>
+      <p>Detects seconds vs milliseconds. Shows ISO, local, and a relative ("3 days ago") form. Timezone selector uses your browser's IANA list.</p>
+      <h3>UUID</h3>
+      <p>v4 is fully random. v7 is time-ordered (UNIX-ms timestamp + random) and database-friendly. Bulk-generate up to 1000.</p>
+    </div>
+    <div class="modal-pane" data-pane="privacy">
+      <p>BOFH is a single HTML file. There is no server, no analytics, no fonts loaded from a CDN, no third-party scripts (Phase 1).</p>
+      <p>Your inputs are stored only in your own browser's <code>localStorage</code>. Clear it with the <code>⌫</code> button or your browser's site-data settings.</p>
+      <p>The JWT verifier uses the browser's built-in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank">Web Crypto API</a> — the same primitives your OS uses.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="closeHelp()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div class="footer-nav">
+  <a href="https://naklitechie.github.io/">⬅ More Projects</a>
+  <a href="https://github.com/NakliTechie/BOFH">⌨ Source</a>
+</div>
+
+<script>
+/* ============================================================
+   BOFH v1 — Phase 1
+   Browser-native dev toolkit
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'class') node.className = attrs[k];
+    else if (k === 'style') node.style.cssText = attrs[k];
+    else if (k.startsWith('on')) node.addEventListener(k.slice(2), attrs[k]);
+    else if (attrs[k] !== false && attrs[k] != null) node.setAttribute(k, attrs[k]);
+  }
+  for (const c of children) {
+    if (c == null || c === false) continue;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+};
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- storage ---------- */
+const store = {
+  get(key, fallback = '') {
+    try { const v = localStorage.getItem('bofh:' + key); return v == null ? fallback : v; } catch { return fallback; }
+  },
+  set(key, val) {
+    try { localStorage.setItem('bofh:' + key, val); } catch {}
+  },
+  getJSON(key, fallback) {
+    try { const v = localStorage.getItem('bofh:' + key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; }
+  },
+  setJSON(key, val) {
+    try { localStorage.setItem('bofh:' + key, JSON.stringify(val)); } catch {}
+  },
+  clearAll() {
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('bofh:')) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+    } catch {}
+  }
+};
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function copy(text) {
+  if (!text) return;
+  navigator.clipboard?.writeText(text).then(() => toast('Copied'), () => toast('Copy failed'));
+}
+
+/* ---------- intro / help ---------- */
+function dismissIntro() {
+  store.set('_global:introSeen', '1');
+  $('intro-overlay').classList.remove('show');
+}
+function openHelp() { $('help-overlay').classList.add('show'); }
+function closeHelp() { $('help-overlay').classList.remove('show'); }
+window.dismissIntro = dismissIntro;
+window.closeHelp = closeHelp;
+
+/* ---------- theme ---------- */
+function applyTheme(t) {
+  document.body.setAttribute('data-theme', t);
+  store.set('_global:theme', t);
+}
+(function initTheme() {
+  const saved = store.get('_global:theme', '');
+  if (saved) applyTheme(saved);
+  else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) applyTheme('light');
+})();
+
+/* ============================================================
+   MODULES
+   ============================================================ */
+
+const MODULES = [];
+
+/* ---------- JSON ---------- */
+MODULES.push({
+  id: 'json',
+  name: 'JSON',
+  icon: '{}',
+  category: 'Text & Data',
+  desc: 'Format, validate, tree-view, and query JSON.',
+  init(c) {
+    const last = store.get('json:input', '{\n  "hello": "world",\n  "n": 42,\n  "nested": { "a": [1, 2, 3] }\n}');
+    c.innerHTML = '';
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste JSON…' });
+    input.value = last;
+    const status = el('div', { class: 'status' });
+    const btnFormat = el('button', { class: 'btn btn-primary' }, 'Format');
+    const btnMinify = el('button', { class: 'btn' }, 'Minify');
+    const btnTree = el('button', { class: 'btn' }, 'Tree');
+    const btnCopy = el('button', { class: 'btn' }, 'Copy');
+    const btnClear = el('button', { class: 'btn' }, 'Clear');
+    const pathInput = el('input', { type: 'text', placeholder: 'JSONPath e.g. $.nested.a[1]' });
+    const pathOut = el('pre', { class: 'pre-out' });
+    pathOut.textContent = '';
+    const treeBox = el('div', { class: 'pre-out' });
+    treeBox.style.display = 'none';
+    const out = el('pre', { class: 'pre-out' });
+
+    function setStatus(msg, cls) {
+      status.textContent = msg;
+      status.className = 'status ' + (cls || '');
+    }
+    function parseInput() {
+      try { return { ok: true, value: JSON.parse(input.value) }; }
+      catch (e) { return { ok: false, err: e.message }; }
+    }
+    function format() {
+      const r = parseInput();
+      if (!r.ok) { out.textContent = ''; out.style.display='none'; treeBox.style.display='none'; setStatus('✗ ' + r.err, 'err'); return; }
+      out.textContent = JSON.stringify(r.value, null, 2);
+      out.style.display = 'block';
+      treeBox.style.display = 'none';
+      const size = new Blob([input.value]).size;
+      setStatus('✓ valid · ' + size + ' bytes', 'ok');
+    }
+    function minify() {
+      const r = parseInput();
+      if (!r.ok) { setStatus('✗ ' + r.err, 'err'); return; }
+      out.textContent = JSON.stringify(r.value);
+      out.style.display = 'block';
+      treeBox.style.display = 'none';
+      setStatus('✓ minified · ' + out.textContent.length + ' bytes', 'ok');
+    }
+    function tree() {
+      const r = parseInput();
+      if (!r.ok) { setStatus('✗ ' + r.err, 'err'); return; }
+      treeBox.innerHTML = '';
+      treeBox.appendChild(renderTree(r.value));
+      treeBox.style.display = 'block';
+      out.style.display = 'none';
+      setStatus('✓ tree view', 'ok');
+    }
+    function renderTree(value) {
+      const root = el('div', { class: 'json-tree' });
+      root.appendChild(buildNode(value, null, true));
+      return root;
+    }
+    function buildNode(value, key, isRoot) {
+      const li = el('li');
+      const wrap = el('div');
+      const isObj = value && typeof value === 'object';
+      if (isObj) {
+        const keys = Array.isArray(value) ? value.map((_, i) => i) : Object.keys(value);
+        const toggle = el('span', { class: 'toggle' }, '▾');
+        toggle.onclick = () => {
+          li.classList.toggle('collapsed');
+          toggle.textContent = li.classList.contains('collapsed') ? '▸' : '▾';
+        };
+        wrap.appendChild(toggle);
+        if (key !== null) {
+          wrap.appendChild(el('span', { class: 'key' }, JSON.stringify(key)));
+          wrap.appendChild(el('span', { class: 'punct' }, ': '));
+        }
+        wrap.appendChild(el('span', { class: 'punct' }, Array.isArray(value) ? '[' : '{'));
+        const summary = el('span', { class: 'summary' }, ' ' + keys.length + (Array.isArray(value) ? ' items ' : ' keys ') + (Array.isArray(value) ? ']' : '}'));
+        wrap.appendChild(summary);
+        li.appendChild(wrap);
+        const ul = el('ul');
+        keys.forEach(k => ul.appendChild(buildNode(value[k], k, false)));
+        li.appendChild(ul);
+        const closer = el('div');
+        closer.appendChild(el('span', { class: 'punct' }, Array.isArray(value) ? ']' : '}'));
+        li.appendChild(closer);
+      } else {
+        if (key !== null) {
+          wrap.appendChild(el('span', { class: 'key' }, JSON.stringify(key)));
+          wrap.appendChild(el('span', { class: 'punct' }, ': '));
+        }
+        let cls = 'null', txt = 'null';
+        if (typeof value === 'string') { cls = 'str'; txt = JSON.stringify(value); }
+        else if (typeof value === 'number') { cls = 'num'; txt = String(value); }
+        else if (typeof value === 'boolean') { cls = 'bool'; txt = String(value); }
+        else if (value === null) { cls = 'null'; txt = 'null'; }
+        wrap.appendChild(el('span', { class: cls }, txt));
+        li.appendChild(wrap);
+      }
+      if (isRoot) {
+        const ul = el('ul');
+        ul.style.paddingLeft = '0';
+        ul.appendChild(li);
+        return ul;
+      }
+      return li;
+    }
+    function runPath() {
+      const r = parseInput();
+      if (!r.ok) { pathOut.textContent = '✗ invalid JSON'; return; }
+      const p = pathInput.value.trim();
+      if (!p) { pathOut.textContent = ''; return; }
+      try {
+        const v = jsonPath(r.value, p);
+        pathOut.textContent = v === undefined ? '(no match)' : JSON.stringify(v, null, 2);
+      } catch (e) {
+        pathOut.textContent = '✗ ' + e.message;
+      }
+    }
+    input.addEventListener('input', () => {
+      store.set('json:input', input.value);
+      const r = parseInput();
+      if (r.ok) setStatus('✓ valid', 'ok');
+      else setStatus('✗ ' + r.err, 'err');
+    });
+    btnFormat.onclick = format;
+    btnMinify.onclick = minify;
+    btnTree.onclick = tree;
+    btnCopy.onclick = () => copy(out.style.display === 'none' ? input.value : out.textContent);
+    btnClear.onclick = () => { input.value = ''; out.textContent=''; treeBox.innerHTML=''; setStatus(''); store.set('json:input',''); };
+    pathInput.addEventListener('input', runPath);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Input'),
+      input,
+      el('div', { class: 'btn-row' }, btnFormat, btnMinify, btnTree, btnCopy, btnClear, el('span', { class: 'spacer' }), status),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Output'),
+      out, treeBox,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'JSONPath query'),
+      pathInput, pathOut
+    ));
+
+    // Initial validate
+    const r = parseInput();
+    setStatus(r.ok ? '✓ valid' : '✗ ' + r.err, r.ok ? 'ok' : 'err');
+  }
+});
+
+/* tiny JSONPath subset: $, .key, [index], ['key'] */
+function jsonPath(obj, expr) {
+  if (!expr.startsWith('$')) throw new Error("path must start with $");
+  let i = 1, cur = obj;
+  while (i < expr.length) {
+    const c = expr[i];
+    if (c === '.') {
+      i++;
+      let j = i;
+      while (j < expr.length && expr[j] !== '.' && expr[j] !== '[') j++;
+      const key = expr.slice(i, j);
+      if (cur == null) return undefined;
+      cur = cur[key];
+      i = j;
+    } else if (c === '[') {
+      const end = expr.indexOf(']', i);
+      if (end < 0) throw new Error("missing ]");
+      let inner = expr.slice(i + 1, end).trim();
+      if ((inner.startsWith("'") && inner.endsWith("'")) || (inner.startsWith('"') && inner.endsWith('"'))) {
+        inner = inner.slice(1, -1);
+      }
+      if (cur == null) return undefined;
+      cur = cur[inner];
+      i = end + 1;
+    } else {
+      throw new Error("unexpected '" + c + "' at " + i);
+    }
+  }
+  return cur;
+}
+
+/* ---------- JWT ---------- */
+MODULES.push({
+  id: 'jwt',
+  name: 'JWT',
+  icon: '🔐',
+  category: 'Crypto & Security',
+  desc: 'Decode, inspect, and verify JSON Web Tokens. Nothing leaves your browser.',
+  init(c) {
+    c.innerHTML = '';
+    const last = store.get('jwt:input', '');
+    const lastSecret = store.get('jwt:secret', '');
+    const lastKey = store.get('jwt:pubkey', '');
+
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste a JWT…' });
+    input.value = last;
+    const colored = el('div', { class: 'jwt-display' });
+    const headerOut = el('pre', { class: 'pre-out' });
+    const payloadOut = el('pre', { class: 'pre-out' });
+    const claimsBox = el('div', { class: 'kv' });
+    const verifyStatus = el('div', { class: 'status' });
+    const secretInput = el('input', { type: 'text', placeholder: 'HS256 secret (text)' });
+    secretInput.value = lastSecret;
+    const keyInput = el('textarea', { spellcheck: 'false', placeholder: '-----BEGIN PUBLIC KEY-----\n…\n-----END PUBLIC KEY-----', style: 'min-height:100px' });
+    keyInput.value = lastKey;
+
+    function colorize(jwt) {
+      const parts = jwt.split('.');
+      colored.innerHTML = '';
+      if (parts[0]) colored.appendChild(el('span', { class: 'seg-h' }, parts[0]));
+      if (parts[1]) { colored.appendChild(el('span', { class: 'seg-h' }, '.')); colored.appendChild(el('span', { class: 'seg-p' }, parts[1])); }
+      if (parts[2]) { colored.appendChild(el('span', { class: 'seg-h' }, '.')); colored.appendChild(el('span', { class: 'seg-s' }, parts[2])); }
+    }
+
+    function decode() {
+      headerOut.textContent = '';
+      payloadOut.textContent = '';
+      claimsBox.innerHTML = '';
+      verifyStatus.textContent = '';
+      verifyStatus.className = 'status';
+      const tok = input.value.trim();
+      if (!tok) { colored.innerHTML = ''; return null; }
+      colorize(tok);
+      const parts = tok.split('.');
+      if (parts.length < 2) { headerOut.textContent = '✗ not a JWT (need at least 2 segments)'; return null; }
+      let header, payload;
+      try { header = JSON.parse(b64urlDecodeStr(parts[0])); }
+      catch (e) { headerOut.textContent = '✗ header decode: ' + e.message; return null; }
+      try { payload = JSON.parse(b64urlDecodeStr(parts[1])); }
+      catch (e) { payloadOut.textContent = '✗ payload decode: ' + e.message; return null; }
+      headerOut.textContent = JSON.stringify(header, null, 2);
+      payloadOut.textContent = JSON.stringify(payload, null, 2);
+
+      // claims
+      const now = Math.floor(Date.now() / 1000);
+      const rows = [];
+      const addRow = (k, v, cls) => { rows.push([k, v, cls || '']); };
+      if (header.alg) addRow('alg', header.alg);
+      if (header.typ) addRow('typ', header.typ);
+      if (header.kid) addRow('kid', header.kid);
+      if (payload.iss) addRow('iss', payload.iss);
+      if (payload.sub) addRow('sub', payload.sub);
+      if (payload.aud) addRow('aud', Array.isArray(payload.aud) ? payload.aud.join(', ') : payload.aud);
+      if (payload.iat != null) addRow('iat', new Date(payload.iat * 1000).toISOString() + ' (' + relTime(payload.iat * 1000) + ')');
+      if (payload.nbf != null) {
+        const ok = now >= payload.nbf;
+        addRow('nbf', new Date(payload.nbf * 1000).toISOString() + (ok ? ' ✓' : ' ✗ not yet valid'), ok ? 'ok' : 'err');
+      }
+      if (payload.exp != null) {
+        const ok = now < payload.exp;
+        addRow('exp', new Date(payload.exp * 1000).toISOString() + ' (' + relTime(payload.exp * 1000) + ')' + (ok ? ' ✓' : ' ✗ EXPIRED'), ok ? 'ok' : 'err');
+      } else {
+        addRow('exp', '(none — token never expires)', 'warn');
+      }
+      claimsBox.innerHTML = '';
+      rows.forEach(([k, v, cls]) => {
+        claimsBox.appendChild(el('div', { class: 'k' }, k));
+        claimsBox.appendChild(el('div', { class: 'v ' + cls }, String(v)));
+      });
+      return { header, payload, parts };
+    }
+
+    async function verify() {
+      const decoded = decode();
+      if (!decoded) return;
+      const { header, parts } = decoded;
+      const alg = header.alg;
+      const signed = parts[0] + '.' + parts[1];
+      const sig = b64urlDecodeBytes(parts[2] || '');
+      try {
+        if (alg === 'HS256' || alg === 'HS384' || alg === 'HS512') {
+          if (!secretInput.value) { verifyStatus.textContent = 'Enter the HS secret to verify'; verifyStatus.className = 'status warn'; return; }
+          const hash = { 'HS256': 'SHA-256', 'HS384': 'SHA-384', 'HS512': 'SHA-512' }[alg];
+          const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secretInput.value),
+            { name: 'HMAC', hash }, false, ['verify']);
+          const ok = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(signed));
+          verifyStatus.textContent = ok ? '✓ signature valid (' + alg + ')' : '✗ signature INVALID';
+          verifyStatus.className = 'status ' + (ok ? 'ok' : 'err');
+        } else if (alg === 'RS256' || alg === 'RS384' || alg === 'RS512') {
+          if (!keyInput.value.trim()) { verifyStatus.textContent = 'Paste the RSA public key (PEM) to verify'; verifyStatus.className = 'status warn'; return; }
+          const hash = { 'RS256': 'SHA-256', 'RS384': 'SHA-384', 'RS512': 'SHA-512' }[alg];
+          const keyData = pemToArrayBuffer(keyInput.value);
+          const key = await crypto.subtle.importKey('spki', keyData,
+            { name: 'RSASSA-PKCS1-v1_5', hash }, false, ['verify']);
+          const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sig, new TextEncoder().encode(signed));
+          verifyStatus.textContent = ok ? '✓ signature valid (' + alg + ')' : '✗ signature INVALID';
+          verifyStatus.className = 'status ' + (ok ? 'ok' : 'err');
+        } else if (alg === 'none') {
+          verifyStatus.textContent = '⚠ alg=none (unsigned token)';
+          verifyStatus.className = 'status warn';
+        } else {
+          verifyStatus.textContent = 'Unsupported alg: ' + alg;
+          verifyStatus.className = 'status warn';
+        }
+      } catch (e) {
+        verifyStatus.textContent = '✗ ' + e.message;
+        verifyStatus.className = 'status err';
+      }
+    }
+
+    input.addEventListener('input', () => { store.set('jwt:input', input.value); decode(); });
+    secretInput.addEventListener('input', () => store.set('jwt:secret', secretInput.value));
+    keyInput.addEventListener('input', () => store.set('jwt:pubkey', keyInput.value));
+
+    const verifyBtn = el('button', { class: 'btn btn-primary', onclick: verify }, 'Verify');
+    const sampleBtn = el('button', { class: 'btn', onclick: () => {
+      input.value = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+      secretInput.value = 'your-256-bit-secret';
+      store.set('jwt:input', input.value); store.set('jwt:secret', secretInput.value);
+      decode();
+    } }, 'Load sample');
+    const clearBtn = el('button', { class: 'btn', onclick: () => { input.value=''; store.set('jwt:input',''); decode(); } }, 'Clear');
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'JWT'),
+      input,
+      colored,
+      el('div', { class: 'btn-row' }, sampleBtn, clearBtn, el('span', {class:'spacer'})),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Header'), headerOut,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Payload'), payloadOut,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Claims'), claimsBox,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'HS256/384/512 secret'),
+      secretInput,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'RS256/384/512 public key (PEM)'),
+      keyInput,
+      el('div', { class: 'btn-row', style: 'margin-top:6px' }, verifyBtn, verifyStatus)
+    ));
+
+    if (input.value) decode();
+  }
+});
+
+function b64urlDecodeStr(s) {
+  return new TextDecoder().decode(b64urlDecodeBytes(s));
+}
+function b64urlDecodeBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function pemToArrayBuffer(pem) {
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+/* ---------- Base64 ---------- */
+MODULES.push({
+  id: 'base64',
+  name: 'Base64',
+  icon: 'b6',
+  category: 'Crypto & Security',
+  desc: 'Encode and decode text or files. URL-safe variant supported.',
+  init(c) {
+    c.innerHTML = '';
+    const text = el('textarea', { spellcheck: 'false', placeholder: 'Text…' });
+    text.value = store.get('base64:text', '');
+    const out = el('textarea', { spellcheck: 'false', placeholder: 'Base64…' });
+    out.value = store.get('base64:b64', '');
+    const urlsafe = el('input', { type: 'checkbox' });
+    if (store.get('base64:urlsafe', '0') === '1') urlsafe.checked = true;
+    const status = el('div', { class: 'status' });
+    const fileInput = el('input', { type: 'file' });
+
+    function encode() {
+      try {
+        const bytes = new TextEncoder().encode(text.value);
+        let bin = '';
+        for (const b of bytes) bin += String.fromCharCode(b);
+        let s = btoa(bin);
+        if (urlsafe.checked) s = s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        out.value = s;
+        store.set('base64:b64', s);
+        status.textContent = '✓ encoded · ' + bytes.length + ' bytes → ' + s.length + ' chars';
+        status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    function decode() {
+      try {
+        let s = out.value.trim();
+        if (urlsafe.checked || /[-_]/.test(s)) s = s.replace(/-/g, '+').replace(/_/g, '/');
+        while (s.length % 4) s += '=';
+        const bin = atob(s);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        text.value = new TextDecoder().decode(bytes);
+        store.set('base64:text', text.value);
+        status.textContent = '✓ decoded · ' + bytes.length + ' bytes';
+        status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      const buf = new Uint8Array(await f.arrayBuffer());
+      let bin = '';
+      for (const b of buf) bin += String.fromCharCode(b);
+      let s = btoa(bin);
+      if (urlsafe.checked) s = s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      out.value = s;
+      text.value = '(' + f.name + ' — ' + buf.length + ' bytes)';
+      status.textContent = '✓ file encoded · ' + buf.length + ' bytes';
+      status.className = 'status ok';
+    });
+    text.addEventListener('input', () => store.set('base64:text', text.value));
+    out.addEventListener('input', () => store.set('base64:b64', out.value));
+    urlsafe.addEventListener('change', () => store.set('base64:urlsafe', urlsafe.checked ? '1' : '0'));
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Text'),
+      text,
+      el('div', { class: 'btn-row' },
+        el('button', { class: 'btn btn-primary', onclick: encode }, 'Encode ↓'),
+        el('button', { class: 'btn', onclick: decode }, 'Decode ↑'),
+        el('button', { class: 'btn', onclick: () => copy(out.value) }, 'Copy B64'),
+        el('button', { class: 'btn', onclick: () => copy(text.value) }, 'Copy text'),
+        el('label', { style: 'display:flex;align-items:center;gap:5px;margin-left:8px;font-size:12px;color:var(--text-dim)' }, urlsafe, 'URL-safe'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Base64'),
+      out,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Encode a file'),
+      fileInput
+    ));
+  }
+});
+
+/* ---------- Timestamp ---------- */
+function relTime(ms) {
+  const diff = ms - Date.now();
+  const abs = Math.abs(diff);
+  const units = [['year', 31536000000], ['month', 2592000000], ['day', 86400000], ['hour', 3600000], ['minute', 60000], ['second', 1000]];
+  for (const [name, u] of units) {
+    if (abs >= u) {
+      const n = Math.round(diff / u);
+      return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(n, name);
+    }
+  }
+  return 'just now';
+}
+
+MODULES.push({
+  id: 'timestamp',
+  name: 'Timestamp',
+  icon: '⏱',
+  category: 'Converters & Generators',
+  desc: 'Unix epoch ↔ human time. Timezone-aware.',
+  init(c) {
+    c.innerHTML = '';
+    const epochInput = el('input', { type: 'text', placeholder: 'e.g. 1700000000 or 1700000000000' });
+    epochInput.value = store.get('timestamp:epoch', String(Math.floor(Date.now() / 1000)));
+    const dateInput = el('input', { type: 'text', placeholder: 'e.g. 2026-04-06T10:30:00' });
+    const tzSelect = el('select');
+    const tzs = ['UTC', Intl.DateTimeFormat().resolvedOptions().timeZone,
+      'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Berlin',
+      'Asia/Kolkata', 'Asia/Tokyo', 'Asia/Singapore', 'Australia/Sydney'];
+    [...new Set(tzs)].forEach(tz => tzSelect.appendChild(el('option', { value: tz }, tz)));
+    tzSelect.value = store.get('timestamp:tz', Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+    const out = el('div', { class: 'kv' });
+    const nowBtn = el('button', { class: 'btn btn-primary' }, 'Now');
+
+    function update() {
+      let ms;
+      const v = epochInput.value.trim();
+      if (!v) { out.innerHTML = ''; return; }
+      const n = Number(v);
+      if (!isFinite(n)) { out.innerHTML = '<div class="k">error</div><div class="v err">not a number</div>'; return; }
+      ms = v.length >= 13 ? n : n * 1000;
+      const d = new Date(ms);
+      if (isNaN(d.getTime())) { out.innerHTML = '<div class="k">error</div><div class="v err">invalid date</div>'; return; }
+      const tz = tzSelect.value;
+      const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+      out.innerHTML = '';
+      const rows = [
+        ['Unix (s)', Math.floor(ms / 1000)],
+        ['Unix (ms)', ms],
+        ['ISO 8601', d.toISOString()],
+        ['UTC', d.toUTCString()],
+        ['Local (' + tz + ')', fmt.format(d)],
+        ['Relative', relTime(ms)],
+        ['Day of week', d.toLocaleDateString('en', { weekday: 'long', timeZone: tz })],
+      ];
+      rows.forEach(([k, v]) => {
+        out.appendChild(el('div', { class: 'k' }, k));
+        const vd = el('div', { class: 'v' }, String(v));
+        vd.style.cursor = 'pointer';
+        vd.title = 'Click to copy';
+        vd.onclick = () => copy(String(v));
+        out.appendChild(vd);
+      });
+      store.set('timestamp:epoch', v);
+      store.set('timestamp:tz', tz);
+    }
+    function fromDate() {
+      const v = dateInput.value.trim(); if (!v) return;
+      const d = new Date(v);
+      if (isNaN(d.getTime())) { out.innerHTML = '<div class="k">error</div><div class="v err">parse failed</div>'; return; }
+      epochInput.value = String(Math.floor(d.getTime() / 1000));
+      update();
+    }
+    nowBtn.onclick = () => { epochInput.value = String(Math.floor(Date.now() / 1000)); update(); };
+    epochInput.addEventListener('input', update);
+    tzSelect.addEventListener('change', update);
+    dateInput.addEventListener('input', fromDate);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Unix epoch (auto-detects s vs ms)'),
+      epochInput,
+      el('div', { class: 'btn-row' }, nowBtn, el('div', { style:'flex:1' }), el('div', { class:'label' }, 'Timezone'), tzSelect),
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Or parse a date string'),
+      dateInput,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Output (click any value to copy)'),
+      out
+    ));
+    update();
+  }
+});
+
+/* ---------- UUID ---------- */
+function uuidV4() {
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map(x => x.toString(16).padStart(2, '0'));
+  return `${h.slice(0,4).join('')}-${h.slice(4,6).join('')}-${h.slice(6,8).join('')}-${h.slice(8,10).join('')}-${h.slice(10,16).join('')}`;
+}
+function uuidV7() {
+  const ms = BigInt(Date.now());
+  const rand = crypto.getRandomValues(new Uint8Array(10));
+  const b = new Uint8Array(16);
+  b[0] = Number((ms >> 40n) & 0xffn);
+  b[1] = Number((ms >> 32n) & 0xffn);
+  b[2] = Number((ms >> 24n) & 0xffn);
+  b[3] = Number((ms >> 16n) & 0xffn);
+  b[4] = Number((ms >> 8n) & 0xffn);
+  b[5] = Number(ms & 0xffn);
+  for (let i = 0; i < 10; i++) b[6 + i] = rand[i];
+  b[6] = (b[6] & 0x0f) | 0x70;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map(x => x.toString(16).padStart(2, '0'));
+  return `${h.slice(0,4).join('')}-${h.slice(4,6).join('')}-${h.slice(6,8).join('')}-${h.slice(8,10).join('')}-${h.slice(10,16).join('')}`;
+}
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-([1-8])[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function uuidParse(s) {
+  s = s.trim().toLowerCase();
+  const m = s.match(UUID_RE);
+  if (!m) return { ok: false, err: 'Not a valid UUID' };
+  const version = parseInt(m[1], 16);
+  const info = { version, variant: 'RFC 4122' };
+  if (version === 7) {
+    const hex = s.replace(/-/g, '');
+    const ms = parseInt(hex.slice(0, 12), 16);
+    info.timestamp = new Date(ms).toISOString();
+    info.relative = relTime(ms);
+  }
+  return { ok: true, info };
+}
+
+MODULES.push({
+  id: 'uuid',
+  name: 'UUID',
+  icon: 'u',
+  category: 'Converters & Generators',
+  desc: 'Generate v4 (random) or v7 (time-ordered) UUIDs. Parse and validate.',
+  init(c) {
+    c.innerHTML = '';
+    const versionSel = el('select');
+    versionSel.appendChild(el('option', { value: '4' }, 'v4 — random'));
+    versionSel.appendChild(el('option', { value: '7' }, 'v7 — time-ordered'));
+    versionSel.value = store.get('uuid:version', '4');
+    const countInput = el('input', { type: 'number', value: store.get('uuid:count', '10'), min: '1', max: '1000', style: 'max-width:100px' });
+    const list = el('div', { class: 'uuid-list' });
+    const parseInput = el('input', { type: 'text', placeholder: 'Paste a UUID to validate…' });
+    const parseOut = el('div', { class: 'kv' });
+
+    function generate() {
+      const v = versionSel.value;
+      const n = Math.max(1, Math.min(1000, parseInt(countInput.value || '1', 10)));
+      const fn = v === '7' ? uuidV7 : uuidV4;
+      list.innerHTML = '';
+      const lines = [];
+      for (let i = 0; i < n; i++) lines.push(fn());
+      list.textContent = lines.join('\n');
+      store.set('uuid:version', v);
+      store.set('uuid:count', String(n));
+    }
+    function parse() {
+      parseOut.innerHTML = '';
+      const v = parseInput.value.trim();
+      if (!v) return;
+      const r = uuidParse(v);
+      if (!r.ok) {
+        parseOut.appendChild(el('div', { class: 'k' }, 'status'));
+        parseOut.appendChild(el('div', { class: 'v err' }, r.err));
+        return;
+      }
+      Object.entries(r.info).forEach(([k, v]) => {
+        parseOut.appendChild(el('div', { class: 'k' }, k));
+        parseOut.appendChild(el('div', { class: 'v ok' }, String(v)));
+      });
+    }
+    versionSel.onchange = generate;
+    countInput.oninput = generate;
+    parseInput.addEventListener('input', parse);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Version'), versionSel,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Count'), countInput,
+        el('button', { class: 'btn btn-primary', onclick: generate }, 'Generate'),
+        el('button', { class: 'btn', onclick: () => copy(list.textContent) }, 'Copy all')
+      ),
+      list,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'Parse / validate'),
+      parseInput,
+      parseOut
+    ));
+    generate();
+  }
+});
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+
+function buildSidebar() {
+  const nav = $('nav');
+  nav.innerHTML = '';
+  const groups = {};
+  MODULES.forEach(m => {
+    (groups[m.category] = groups[m.category] || []).push(m);
+  });
+  Object.entries(groups).forEach(([cat, mods]) => {
+    const group = el('div', { class: 'nav-group', 'data-cat': cat });
+    group.appendChild(el('div', { class: 'nav-group-title' }, cat));
+    mods.forEach(m => {
+      const item = el('div', { class: 'nav-item', 'data-id': m.id, 'data-name': m.name.toLowerCase() },
+        el('span', { class: 'nav-icon' }, m.icon),
+        el('span', {}, m.name)
+      );
+      item.onclick = () => { location.hash = '#' + m.id; closeSidebarMobile(); };
+      group.appendChild(item);
+    });
+    nav.appendChild(group);
+  });
+}
+
+const moduleInits = new Set();
+const moduleContainers = {};
+
+function activate(id) {
+  const mod = MODULES.find(m => m.id === id) || MODULES[0];
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.getAttribute('data-id') === mod.id));
+  $('m-title').textContent = mod.name;
+  $('m-desc').textContent = mod.desc;
+  const body = $('main-body');
+  // Hide all known containers
+  Object.values(moduleContainers).forEach(c => c.style.display = 'none');
+  let container = moduleContainers[mod.id];
+  if (!container) {
+    container = document.createElement('div');
+    moduleContainers[mod.id] = container;
+    body.appendChild(container);
+  }
+  container.style.display = 'block';
+  if (!moduleInits.has(mod.id)) {
+    try { mod.init(container); } catch (e) { container.innerHTML = '<div class="error-box">Module init failed: ' + escapeHtml(e.message) + '</div>'; }
+    moduleInits.add(mod.id);
+  }
+  store.set('_global:lastTab', mod.id);
+}
+
+function handleHash() {
+  const id = (location.hash || '').replace('#', '');
+  activate(id || store.get('_global:lastTab', MODULES[0].id));
+}
+
+/* ---------- search filter ---------- */
+function filterNav(q) {
+  q = q.trim().toLowerCase();
+  document.querySelectorAll('.nav-item').forEach(n => {
+    const match = !q || n.getAttribute('data-name').includes(q);
+    n.classList.toggle('hidden', !match);
+  });
+  document.querySelectorAll('.nav-group').forEach(g => {
+    const visible = g.querySelectorAll('.nav-item:not(.hidden)').length;
+    g.classList.toggle('empty', visible === 0);
+  });
+}
+
+/* ---------- mobile sidebar ---------- */
+function closeSidebarMobile() { $('sidebar').classList.remove('open'); }
+$('sidebar-toggle').onclick = () => $('sidebar').classList.toggle('open');
+
+/* ---------- wiring ---------- */
+function init() {
+  buildSidebar();
+  handleHash();
+  window.addEventListener('hashchange', handleHash);
+  $('search').addEventListener('input', e => filterNav(e.target.value));
+  $('theme-btn').onclick = () => applyTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  $('help-btn').onclick = openHelp;
+  $('clear-btn').onclick = () => {
+    if (confirm('Clear all BOFH data from this browser? (theme preference is kept)')) {
+      const theme = store.get('_global:theme', '');
+      store.clearAll();
+      if (theme) store.set('_global:theme', theme);
+      location.reload();
+    }
+  };
+  // Help modal tabs
+  document.querySelectorAll('#help-tabs .modal-tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('#help-tabs .modal-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('#help-overlay .modal-pane').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelector(`#help-overlay .modal-pane[data-pane="${t.getAttribute('data-tab')}"]`).classList.add('active');
+    };
+  });
+  // Modal backdrop close
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o && o.id === 'help-overlay') closeHelp(); });
+  });
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+      if (e.key === 'Escape') e.target.blur();
+      return;
+    }
+    if (e.key === '/') { e.preventDefault(); $('search').focus(); }
+    else if (e.key === '?') { e.preventDefault(); openHelp(); }
+    else if (e.key === 'Escape') { closeHelp(); $('intro-overlay').classList.remove('show'); }
+  });
+  // Intro
+  if (store.get('_global:introSeen', '') !== '1') {
+    $('intro-overlay').classList.add('show');
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>

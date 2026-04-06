@@ -334,6 +334,144 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 }
 .uuid-list .row { display: block; padding: 1px 0; }
 
+/* ----- Diff ----- */
+.diff-out {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  max-height: 600px;
+  overflow: auto;
+  white-space: pre;
+}
+.diff-out .line { display: block; padding: 0 8px 0 11px; }
+.diff-out .add { background: rgba(74,222,128,0.12); border-left: 3px solid var(--ok); padding-left: 8px; }
+.diff-out .del { background: rgba(248,113,113,0.12); border-left: 3px solid var(--err); padding-left: 8px; }
+.diff-out .eq  { color: var(--text-dim); }
+.diff-out .word { background: rgba(255,200,80,0.45); color: var(--text); border-radius: 2px; }
+
+/* ----- CSV / SQL table ----- */
+.csv-wrap {
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-2);
+}
+.csv-table {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  border-collapse: collapse;
+  min-width: 100%;
+}
+.csv-table th, .csv-table td {
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.csv-table th {
+  background: var(--bg-3);
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.csv-table th .arrow { font-size: 9px; opacity: 0.6; margin-left: 4px; }
+.csv-table tr:nth-child(even) td { background: rgba(0,0,0,0.12); }
+[data-theme="light"] .csv-table tr:nth-child(even) td { background: rgba(0,0,0,0.03); }
+
+/* ----- Markdown ----- */
+.md-pane { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.md-pane textarea { min-height: 460px; }
+.md-preview {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 14px 18px;
+  min-height: 460px;
+  max-height: 600px;
+  overflow: auto;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 { color: var(--text); margin: 16px 0 6px; line-height: 1.25; }
+.md-preview h1 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.md-preview h2 { font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 3px; }
+.md-preview h3 { font-size: 15px; }
+.md-preview p { margin: 6px 0; }
+.md-preview code {
+  background: var(--bg-3);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.md-preview pre {
+  background: var(--bg-3);
+  padding: 11px 13px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.md-preview pre code { background: transparent; padding: 0; }
+.md-preview a { color: var(--link); text-decoration: none; }
+.md-preview a:hover { text-decoration: underline; }
+.md-preview blockquote { border-left: 3px solid var(--border-2); padding-left: 12px; color: var(--text-dim); margin: 8px 0; }
+.md-preview table { border-collapse: collapse; margin: 8px 0; }
+.md-preview th, .md-preview td { border: 1px solid var(--border); padding: 4px 8px; font-size: 12.5px; }
+.md-preview th { background: var(--bg-3); }
+.md-preview ul, .md-preview ol { margin: 6px 0; padding-left: 22px; }
+@media (max-width: 760px) { .md-pane { grid-template-columns: 1fr; } }
+
+/* ----- Log viewer ----- */
+.log-wrap {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  height: 540px;
+  overflow: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  position: relative;
+}
+.log-spacer { width: 1px; }
+.log-render { position: absolute; left: 0; right: 0; top: 0; }
+.log-line { display: flex; line-height: 18px; padding: 0 8px; white-space: pre; }
+.log-line:hover { background: var(--bg-3); }
+.log-line .num {
+  color: var(--text-faint);
+  width: 64px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 12px;
+  user-select: none;
+}
+.log-line .text { flex: 1; min-width: 0; }
+.log-line.match .text { background: rgba(255,200,80,0.18); }
+.log-line .hl { background: rgba(255,200,80,0.55); color: var(--text); border-radius: 2px; }
+
+/* ----- Loading badge ----- */
+.loading-badge {
+  display: inline-block;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2px 11px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
 /* ----- Modal ----- */
 .modal-overlay {
   position: fixed; inset: 0;
@@ -494,14 +632,16 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
     <p style="font-size:13.5px; color:var(--text);">Browser-native dev toolkit. <strong>Nothing leaves your device.</strong></p>
     <h3>What's in here</h3>
     <ul>
-      <li><strong>JSON</strong> — format, validate, tree-view, JSONPath</li>
-      <li><strong>JWT</strong> — decode header/payload, verify HS256/RS256, check expiry</li>
-      <li><strong>Hash</strong> — SHA family + MD5 + HMAC, text or file</li>
-      <li><strong>Base64 / URL / Regex</strong> — the usual encode/decode/match suspects</li>
+      <li><strong>JSON / YAML / Markdown</strong> — format, validate, convert, live-preview</li>
+      <li><strong>JWT</strong> — decode + verify HS256/RS256 with the Web Crypto API</li>
+      <li><strong>Hash / Base64 / URL / Regex</strong> — all the encode / decode / match staples</li>
       <li><strong>Keys</strong> — generate RSA/EC keypairs, decode PEM certificates</li>
+      <li><strong>Diff</strong> — line + inline word-level diff between two texts</li>
+      <li><strong>CSV / SQL</strong> — drop a CSV, get a sortable table or query it with SQLite</li>
+      <li><strong>Log Viewer</strong> — virtual-scroll big logs with regex search</li>
       <li><strong>Timestamp / UUID</strong> — epoch ↔ human, v4 + v7 generation</li>
     </ul>
-    <p style="font-size:12.5px;">More modules coming. Every transformation runs locally — no servers, no telemetry, no random S3 buckets seeing your tokens.</p>
+    <p style="font-size:12.5px;">Every transformation runs locally — no servers, no telemetry, no random S3 buckets seeing your tokens.</p>
     <div class="modal-foot">
       <button class="btn" onclick="window.open('https://github.com/NakliTechie/BOFH','_blank'); dismissIntro();">Source</button>
       <button class="btn btn-primary" onclick="dismissIntro()">Got it</button>
@@ -549,6 +689,18 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
       <p>JavaScript regex with live match highlighting, capture-group inspection, all six flags (<code>g i m s u y</code>), a preset library (email, IPv4, UUID, ISO date, URL, hex color, phone), and a live replacement preview supporting <code>$1</code>/<code>$2</code> backreferences.</p>
       <h3>Keys</h3>
       <p>Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs entirely in your browser. Public key exports as SPKI PEM, private key as PKCS#8 PEM. Shows a SHA-256 SPKI fingerprint (the same one your TLS clients use). Paste any PEM <code>PUBLIC KEY</code> or <code>CERTIFICATE</code> to inspect — for X.509 certs you get subject, issuer, serial, validity dates, and the SPKI fingerprint, parsed via a tiny ASN.1 walker.</p>
+      <h3>Diff</h3>
+      <p>Two textareas, line-level diff via LCS. When a deleted line is followed by an added line, an inline word-level diff highlights exactly what changed within the line. Pure JS, no CDN.</p>
+      <h3>YAML</h3>
+      <p>Two-pane YAML ↔ JSON converter using js-yaml (lazy-loaded from CDN on first open). Click either conversion button; both panes persist between sessions.</p>
+      <h3>Markdown</h3>
+      <p>Live Markdown preview (CommonMark + GFM tables / fenced code) using marked.js (lazy CDN). Source is on the left, rendered preview on the right. PDF/DOCX import is on the backlog.</p>
+      <h3>CSV</h3>
+      <p>Drop a CSV/TSV file or paste rows. Get a sortable table (click headers), substring filter, regex find/replace across all cells, exact-row dedup, and CSV re-export. Loaded data is shared with the SQL tab via "Import from CSV tab". Uses Papa Parse from CDN.</p>
+      <h3>SQL</h3>
+      <p>Real SQLite in your browser via sql.js (~1MB WASM, lazy). Drop a CSV → BOFH infers column types (INTEGER/REAL/TEXT) and creates a table named after the file → write SQL → see results. Cmd/Ctrl+Enter runs the query. The database is in-memory only; nothing is persisted.</p>
+      <h3>Log Viewer</h3>
+      <p>Drop a log file or paste lines. Virtual scroll handles up to 500K lines without breaking a sweat. Type a regex in the search box for live highlighting; toggle "Only matches" to filter. Status bar shows total lines and match count.</p>
     </div>
     <div class="modal-pane" data-pane="privacy">
       <p>BOFH is a single HTML file. There is no server, no analytics, no fonts loaded from a CDN, no third-party scripts (Phase 1).</p>
@@ -2031,6 +2183,679 @@ function asn1HeaderStart(bytes, node) {
   }
   return node.contentStart - 1 - lenBytes;
 }
+
+/* ============================================================
+   PHASE 3 — Diff, YAML, Markdown, CSV, SQL, Log Viewer
+   ============================================================ */
+
+/* ---------- lazy CDN loader ---------- */
+const _loadedScripts = new Map();
+function loadScript(url) {
+  if (_loadedScripts.has(url)) return _loadedScripts.get(url);
+  const p = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = () => resolve();
+    s.onerror = () => { _loadedScripts.delete(url); reject(new Error('Failed to load: ' + url)); };
+    document.head.appendChild(s);
+  });
+  _loadedScripts.set(url, p);
+  return p;
+}
+
+/* ---------- Diff (Myers / LCS) ---------- */
+function diffLines(a, b) {
+  // Trim large common prefix/suffix to keep DP table small
+  let pre = 0;
+  while (pre < a.length && pre < b.length && a[pre] === b[pre]) pre++;
+  let suf = 0;
+  while (suf < a.length - pre && suf < b.length - pre && a[a.length - 1 - suf] === b[b.length - 1 - suf]) suf++;
+  const aMid = a.slice(pre, a.length - suf);
+  const bMid = b.slice(pre, b.length - suf);
+  const n = aMid.length, m = bMid.length;
+  // LCS dp (O(nm) memory — fine up to ~2000x2000)
+  const dp = [];
+  for (let i = 0; i <= n; i++) dp.push(new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      if (aMid[i] === bMid[j]) dp[i][j] = dp[i+1][j+1] + 1;
+      else dp[i][j] = Math.max(dp[i+1][j], dp[i][j+1]);
+    }
+  }
+  const ops = [];
+  for (let i = 0; i < pre; i++) ops.push({type:'eq', a:a[i]});
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (aMid[i] === bMid[j]) { ops.push({type:'eq', a:aMid[i]}); i++; j++; }
+    else if (dp[i+1][j] >= dp[i][j+1]) { ops.push({type:'del', a:aMid[i]}); i++; }
+    else { ops.push({type:'add', b:bMid[j]}); j++; }
+  }
+  while (i < n) { ops.push({type:'del', a:aMid[i++]}); }
+  while (j < m) { ops.push({type:'add', b:bMid[j++]}); }
+  for (let k = a.length - suf; k < a.length; k++) ops.push({type:'eq', a:a[k]});
+  return ops;
+}
+function diffWords(a, b) {
+  const aw = a.split(/(\s+)/);
+  const bw = b.split(/(\s+)/);
+  return diffLines(aw, bw);
+}
+
+MODULES.push({
+  id: 'diff',
+  name: 'Diff',
+  icon: '±',
+  category: 'Text & Data',
+  desc: 'Line and word-level diff between two texts. Pure JS.',
+  init(c) {
+    c.innerHTML = '';
+    const left = el('textarea', { spellcheck: 'false', placeholder: 'Original…' });
+    const right = el('textarea', { spellcheck: 'false', placeholder: 'Modified…' });
+    left.value = store.get('diff:left', 'The quick brown fox\njumps over the lazy dog\nLine three\nLine four');
+    right.value = store.get('diff:right', 'The quick red fox\njumps over the lazy dog\nLine three modified\nLine four\nLine five');
+    const out = el('div', { class: 'diff-out' });
+    const status = el('div', { class: 'status' });
+    const wordsToggle = el('input', { type: 'checkbox' });
+    if (store.get('diff:words', '1') === '1') wordsToggle.checked = true;
+
+    function run() {
+      out.innerHTML = '';
+      const aLines = left.value.split('\n');
+      const bLines = right.value.split('\n');
+      const ops = diffLines(aLines, bLines);
+      let added = 0, removed = 0;
+      // Walk and pair adjacent del+add for inline word diff
+      for (let i = 0; i < ops.length; i++) {
+        const op = ops[i];
+        if (op.type === 'del' && wordsToggle.checked && i + 1 < ops.length && ops[i + 1].type === 'add') {
+          const next = ops[i + 1];
+          const words = diffWords(op.a, next.b);
+          // Build del line with deleted words highlighted
+          const delLine = el('span', { class: 'line del' });
+          delLine.appendChild(document.createTextNode('- '));
+          words.forEach(w => {
+            if (w.type === 'eq') delLine.appendChild(document.createTextNode(w.a));
+            else if (w.type === 'del') delLine.appendChild(el('span', { class: 'word' }, w.a));
+          });
+          delLine.appendChild(document.createTextNode('\n'));
+          out.appendChild(delLine);
+          // Build add line with added words highlighted
+          const addLine = el('span', { class: 'line add' });
+          addLine.appendChild(document.createTextNode('+ '));
+          words.forEach(w => {
+            if (w.type === 'eq') addLine.appendChild(document.createTextNode(w.a));
+            else if (w.type === 'add') addLine.appendChild(el('span', { class: 'word' }, w.b));
+          });
+          addLine.appendChild(document.createTextNode('\n'));
+          out.appendChild(addLine);
+          removed++; added++;
+          i++; // skip the +
+        } else if (op.type === 'eq') {
+          out.appendChild(el('span', { class: 'line eq' }, '  ' + op.a + '\n'));
+        } else if (op.type === 'del') {
+          out.appendChild(el('span', { class: 'line del' }, '- ' + op.a + '\n'));
+          removed++;
+        } else if (op.type === 'add') {
+          out.appendChild(el('span', { class: 'line add' }, '+ ' + op.b + '\n'));
+          added++;
+        }
+      }
+      status.textContent = '+' + added + ' / -' + removed;
+      status.className = 'status ' + (added || removed ? 'ok' : '');
+      store.set('diff:left', left.value);
+      store.set('diff:right', right.value);
+    }
+    left.addEventListener('input', run);
+    right.addEventListener('input', run);
+    wordsToggle.addEventListener('change', () => { store.set('diff:words', wordsToggle.checked ? '1' : '0'); run(); });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'row' },
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'Original'), left),
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'Modified'), right)
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        el('button', { class: 'btn btn-primary', onclick: run }, 'Diff'),
+        el('button', { class: 'btn', onclick: () => { const t=left.value; left.value=right.value; right.value=t; run(); } }, 'Swap'),
+        el('label', { style: 'display:flex;align-items:center;gap:5px;margin-left:8px;font-size:12px;color:var(--text-dim)' }, wordsToggle, 'Inline word diff'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Result'),
+      out
+    ));
+    run();
+  }
+});
+
+/* ---------- YAML ---------- */
+const YAML_CDN = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+
+MODULES.push({
+  id: 'yaml',
+  name: 'YAML',
+  icon: 'y',
+  category: 'Text & Data',
+  desc: 'Convert between YAML and JSON. Loaded from CDN on first use.',
+  async init(c) {
+    c.innerHTML = '';
+    const badge = el('div', { class: 'loading-badge' }, 'Loading js-yaml…');
+    c.appendChild(badge);
+    try { await loadScript(YAML_CDN); } catch (e) { badge.textContent = '✗ failed: ' + e.message; return; }
+    badge.remove();
+
+    const yamlIn = el('textarea', { spellcheck: 'false', placeholder: 'YAML…' });
+    yamlIn.value = store.get('yaml:yaml', 'name: BOFH\nversion: 0.3\nmodules:\n  - JSON\n  - JWT\n  - Hash\nflags:\n  cool: true\n');
+    const jsonIn = el('textarea', { spellcheck: 'false', placeholder: 'JSON…' });
+    jsonIn.value = store.get('yaml:json', '');
+    const status = el('div', { class: 'status' });
+
+    function y2j() {
+      try {
+        const obj = jsyaml.load(yamlIn.value);
+        jsonIn.value = JSON.stringify(obj, null, 2);
+        store.set('yaml:json', jsonIn.value);
+        status.textContent = '✓ YAML → JSON';
+        status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    function j2y() {
+      try {
+        const obj = JSON.parse(jsonIn.value);
+        yamlIn.value = jsyaml.dump(obj, { indent: 2, lineWidth: 100 });
+        store.set('yaml:yaml', yamlIn.value);
+        status.textContent = '✓ JSON → YAML';
+        status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    yamlIn.addEventListener('input', () => store.set('yaml:yaml', yamlIn.value));
+    jsonIn.addEventListener('input', () => store.set('yaml:json', jsonIn.value));
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'row' },
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'YAML'), yamlIn),
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'JSON'), jsonIn)
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        el('button', { class: 'btn btn-primary', onclick: y2j }, 'YAML → JSON'),
+        el('button', { class: 'btn btn-primary', onclick: j2y }, 'JSON → YAML'),
+        el('button', { class: 'btn', onclick: () => copy(yamlIn.value) }, 'Copy YAML'),
+        el('button', { class: 'btn', onclick: () => copy(jsonIn.value) }, 'Copy JSON'),
+        el('span', { class: 'spacer' }), status
+      )
+    ));
+    if (yamlIn.value && !jsonIn.value) y2j();
+  }
+});
+
+/* ---------- Markdown ---------- */
+const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+
+MODULES.push({
+  id: 'markdown',
+  name: 'Markdown',
+  icon: 'm',
+  category: 'Text & Data',
+  desc: 'Live Markdown preview. CommonMark + GFM via marked.js.',
+  async init(c) {
+    c.innerHTML = '';
+    const badge = el('div', { class: 'loading-badge' }, 'Loading marked…');
+    c.appendChild(badge);
+    try { await loadScript(MARKED_CDN); } catch (e) { badge.textContent = '✗ failed: ' + e.message; return; }
+    badge.remove();
+    marked.setOptions({ gfm: true, breaks: false });
+
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Type Markdown here…' });
+    input.value = store.get('markdown:input', '# Hello, BOFH\n\nThis is a **live** Markdown preview rendered with [marked](https://marked.js.org).\n\n## Features\n\n- Headings, lists, **bold**, *italic*\n- `inline code` and fenced blocks:\n\n```js\nconst hello = "world";\nconsole.log(hello);\n```\n\n> Blockquote with a [link](https://github.com/NakliTechie/BOFH).\n\n| Module | Status |\n|---|---|\n| JSON | ✓ |\n| Markdown | ✓ |\n');
+    const preview = el('div', { class: 'md-preview' });
+    function render() {
+      try { preview.innerHTML = marked.parse(input.value); }
+      catch (e) { preview.textContent = '✗ ' + e.message; }
+      store.set('markdown:input', input.value);
+    }
+    input.addEventListener('input', render);
+
+    const wrap = el('div', { class: 'md-pane' },
+      el('div', {}, el('div', { class: 'label' }, 'Source'), input),
+      el('div', {}, el('div', { class: 'label' }, 'Preview'), preview)
+    );
+    c.appendChild(wrap);
+    render();
+  }
+});
+
+/* ---------- CSV ---------- */
+const PAPA_CDN = 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js';
+
+function csvSlug(s) {
+  return s.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'data';
+}
+
+MODULES.push({
+  id: 'csv',
+  name: 'CSV',
+  icon: 'cv',
+  category: 'Text & Data',
+  desc: 'Import CSV/TSV. Filter, sort, dedup, find/replace, export.',
+  async init(c) {
+    c.innerHTML = '';
+    const badge = el('div', { class: 'loading-badge' }, 'Loading Papa Parse…');
+    c.appendChild(badge);
+    try { await loadScript(PAPA_CDN); } catch (e) { badge.textContent = '✗ failed: ' + e.message; return; }
+    badge.remove();
+
+    const fileInput = el('input', { type: 'file', accept: '.csv,.tsv,.txt' });
+    const pasteArea = el('textarea', { spellcheck: 'false', placeholder: 'Or paste CSV here…', style: 'min-height:80px' });
+    const filterInput = el('input', { type: 'text', placeholder: 'Filter rows (substring, case-insensitive)' });
+    const findInput = el('input', { type: 'text', placeholder: 'Find (regex)' });
+    const replaceInput = el('input', { type: 'text', placeholder: 'Replace' });
+    const status = el('div', { class: 'status' });
+    const wrap = el('div', { class: 'csv-wrap' });
+
+    let headers = [];
+    let rows = [];        // current (after filter/sort/replace)
+    let allRows = [];     // unfiltered, unsorted master copy
+    let sortCol = -1, sortDir = 1;
+
+    function loadFromText(text) {
+      const result = Papa.parse(text.trim(), { skipEmptyLines: true });
+      if (!result.data.length) { status.textContent = '✗ no rows parsed'; status.className = 'status err'; return; }
+      headers = result.data[0];
+      allRows = result.data.slice(1);
+      rows = allRows.slice();
+      sortCol = -1;
+      render();
+      status.textContent = '✓ ' + rows.length + ' rows · ' + headers.length + ' columns';
+      status.className = 'status ok';
+    }
+    function applyFilter() {
+      const q = filterInput.value.trim().toLowerCase();
+      if (!q) rows = allRows.slice();
+      else rows = allRows.filter(r => r.some(cell => String(cell).toLowerCase().includes(q)));
+      if (sortCol >= 0) sortBy(sortCol, false);
+      render();
+    }
+    function applyReplace() {
+      const f = findInput.value;
+      if (!f) return;
+      let re;
+      try { re = new RegExp(f, 'g'); } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; return; }
+      let count = 0;
+      allRows = allRows.map(r => r.map(cell => {
+        const s = String(cell);
+        if (re.test(s)) { count++; re.lastIndex = 0; return s.replace(re, replaceInput.value); }
+        re.lastIndex = 0;
+        return cell;
+      }));
+      applyFilter();
+      status.textContent = '✓ ' + count + ' cells replaced';
+      status.className = 'status ok';
+    }
+    function dedup() {
+      const seen = new Set();
+      const before = allRows.length;
+      allRows = allRows.filter(r => { const k = JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; });
+      applyFilter();
+      status.textContent = '✓ removed ' + (before - allRows.length) + ' duplicates';
+      status.className = 'status ok';
+    }
+    function sortBy(col, toggle = true) {
+      if (toggle) sortDir = (sortCol === col) ? -sortDir : 1;
+      sortCol = col;
+      rows.sort((a, b) => {
+        const av = a[col] ?? '', bv = b[col] ?? '';
+        const an = Number(av), bn = Number(bv);
+        if (!isNaN(an) && !isNaN(bn) && av !== '' && bv !== '') return (an - bn) * sortDir;
+        return String(av).localeCompare(String(bv)) * sortDir;
+      });
+      render();
+    }
+    function exportCSV() {
+      const out = Papa.unparse([headers, ...rows]);
+      const blob = new Blob([out], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'export.csv'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function render() {
+      wrap.innerHTML = '';
+      if (!headers.length) return;
+      const table = el('table', { class: 'csv-table' });
+      const trh = el('tr');
+      headers.forEach((h, i) => {
+        const th = el('th', {}, String(h));
+        if (sortCol === i) th.appendChild(el('span', { class: 'arrow' }, sortDir > 0 ? '▲' : '▼'));
+        th.onclick = () => sortBy(i);
+        trh.appendChild(th);
+      });
+      table.appendChild(el('thead', {}, trh));
+      const tbody = el('tbody');
+      rows.slice(0, 1000).forEach(r => {
+        const tr = el('tr');
+        for (let i = 0; i < headers.length; i++) tr.appendChild(el('td', {}, String(r[i] ?? '')));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      if (rows.length > 1000) wrap.appendChild(el('div', { style: 'padding:8px;color:var(--text-faint);font-family:var(--mono);font-size:12px' }, '… showing first 1000 of ' + rows.length + ' rows'));
+    }
+
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      const text = await f.text();
+      pasteArea.value = '';
+      loadFromText(text);
+      // expose to SQL via a shared bus
+      window._bofhCsv = { name: csvSlug(f.name), headers, rows: allRows };
+    });
+    pasteArea.addEventListener('input', () => {
+      if (pasteArea.value.trim()) {
+        loadFromText(pasteArea.value);
+        window._bofhCsv = { name: 'pasted', headers, rows: allRows };
+      }
+    });
+    filterInput.addEventListener('input', applyFilter);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Drop file'), fileInput,
+        el('span', { class: 'spacer' }), status
+      ),
+      pasteArea,
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        filterInput,
+        el('button', { class: 'btn', onclick: dedup }, 'Dedup'),
+        el('button', { class: 'btn', onclick: exportCSV }, 'Export CSV')
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:6px' },
+        findInput, replaceInput,
+        el('button', { class: 'btn', onclick: applyReplace }, 'Replace all')
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Table (click headers to sort)'),
+      wrap
+    ));
+  }
+});
+
+/* ---------- SQL (sql.js) ---------- */
+const SQLJS_VERSION = '1.10.3';
+const SQLJS_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@' + SQLJS_VERSION + '/dist/sql-wasm.js';
+
+function inferSqliteType(values) {
+  let allInt = true, allNum = true;
+  for (const v of values) {
+    if (v == null || v === '') continue;
+    const n = Number(v);
+    if (!isFinite(n)) { allInt = false; allNum = false; break; }
+    if (!Number.isInteger(n)) allInt = false;
+  }
+  if (allInt) return 'INTEGER';
+  if (allNum) return 'REAL';
+  return 'TEXT';
+}
+function sqlSafeName(s) {
+  let n = s.replace(/[^a-zA-Z0-9_]/g, '_');
+  if (/^[0-9]/.test(n)) n = 'c_' + n;
+  return n || 'col';
+}
+
+MODULES.push({
+  id: 'sql',
+  name: 'SQL',
+  icon: 'sq',
+  category: 'Text & Data',
+  desc: 'Drop CSV → query with SQL. SQLite (sql.js WASM, ~1MB).',
+  async init(c) {
+    c.innerHTML = '';
+    const badge = el('div', { class: 'loading-badge' }, 'Loading sql.js (~1MB WASM)…');
+    c.appendChild(badge);
+    let SQL;
+    try {
+      await loadScript(SQLJS_CDN);
+      await loadScript(PAPA_CDN);
+      SQL = await initSqlJs({ locateFile: f => 'https://cdn.jsdelivr.net/npm/sql.js@' + SQLJS_VERSION + '/dist/' + f });
+    } catch (e) {
+      badge.textContent = '✗ failed: ' + e.message;
+      return;
+    }
+    badge.remove();
+
+    const db = new SQL.Database();
+    const tables = [];
+
+    const fileInput = el('input', { type: 'file', accept: '.csv,.tsv,.txt' });
+    const editor = el('textarea', { spellcheck: 'false', placeholder: 'SELECT * FROM data LIMIT 10', style: 'min-height:120px' });
+    editor.value = store.get('sql:query', 'SELECT * FROM data LIMIT 10');
+    const runStatus = el('div', { class: 'status' });
+    const tableList = el('div', { class: 'kv' });
+    const wrap = el('div', { class: 'csv-wrap' });
+
+    function refreshTableList() {
+      tableList.innerHTML = '';
+      tables.forEach(t => {
+        tableList.appendChild(el('div', { class: 'k' }, t.name));
+        tableList.appendChild(el('div', { class: 'v' }, t.cols.length + ' cols · ' + t.rowCount + ' rows'));
+      });
+    }
+    function loadCsvIntoDb(name, headers, rows) {
+      const safeCols = headers.map(sqlSafeName);
+      // Dedupe column names
+      const seen = {};
+      for (let i = 0; i < safeCols.length; i++) {
+        let n = safeCols[i];
+        if (seen[n]) { let k = 2; while (seen[n + '_' + k]) k++; n = n + '_' + k; }
+        safeCols[i] = n; seen[n] = true;
+      }
+      const types = headers.map((_, i) => inferSqliteType(rows.map(r => r[i])));
+      const tableName = sqlSafeName(name);
+      try { db.run('DROP TABLE IF EXISTS ' + tableName); } catch {}
+      const ddl = 'CREATE TABLE ' + tableName + ' (' + safeCols.map((n, i) => n + ' ' + types[i]).join(', ') + ')';
+      db.run(ddl);
+      const placeholders = safeCols.map(() => '?').join(',');
+      const stmt = db.prepare('INSERT INTO ' + tableName + ' VALUES (' + placeholders + ')');
+      for (const r of rows) {
+        stmt.run(safeCols.map((_, i) => {
+          const v = r[i];
+          if (v == null || v === '') return null;
+          if (types[i] === 'INTEGER') return parseInt(v, 10);
+          if (types[i] === 'REAL') return parseFloat(v);
+          return String(v);
+        }));
+      }
+      stmt.free();
+      const idx = tables.findIndex(t => t.name === tableName);
+      const entry = { name: tableName, cols: safeCols, rowCount: rows.length };
+      if (idx >= 0) tables[idx] = entry; else tables.push(entry);
+      refreshTableList();
+      runStatus.textContent = '✓ table "' + tableName + '" loaded · ' + rows.length + ' rows';
+      runStatus.className = 'status ok';
+      editor.value = 'SELECT * FROM ' + tableName + ' LIMIT 20';
+    }
+    function runQuery() {
+      try {
+        store.set('sql:query', editor.value);
+        const results = db.exec(editor.value);
+        wrap.innerHTML = '';
+        if (!results.length) { runStatus.textContent = '✓ ok (no rows)'; runStatus.className = 'status ok'; return; }
+        const r = results[0];
+        const table = el('table', { class: 'csv-table' });
+        const trh = el('tr');
+        r.columns.forEach(col => trh.appendChild(el('th', {}, col)));
+        table.appendChild(el('thead', {}, trh));
+        const tbody = el('tbody');
+        r.values.slice(0, 1000).forEach(row => {
+          const tr = el('tr');
+          row.forEach(v => tr.appendChild(el('td', {}, v == null ? 'NULL' : String(v))));
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        runStatus.textContent = '✓ ' + r.values.length + ' rows';
+        runStatus.className = 'status ok';
+      } catch (e) {
+        runStatus.textContent = '✗ ' + e.message;
+        runStatus.className = 'status err';
+      }
+    }
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      const text = await f.text();
+      const result = Papa.parse(text.trim(), { skipEmptyLines: true });
+      if (!result.data.length) return;
+      loadCsvIntoDb(f.name, result.data[0], result.data.slice(1));
+    });
+    // Pull from CSV module if user loaded one there
+    const importBtn = el('button', { class: 'btn', onclick: () => {
+      if (window._bofhCsv) loadCsvIntoDb(window._bofhCsv.name, window._bofhCsv.headers, window._bofhCsv.rows);
+      else { runStatus.textContent = 'No CSV loaded in CSV tab'; runStatus.className = 'status warn'; }
+    } }, 'Import from CSV tab');
+
+    editor.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); runQuery(); }
+    });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Drop CSV'), fileInput, importBtn,
+        el('span', { class: 'spacer' }), runStatus
+      ),
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Loaded tables'),
+      tableList,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'SQL (Cmd/Ctrl+Enter to run)'),
+      editor,
+      el('div', { class: 'btn-row' },
+        el('button', { class: 'btn btn-primary', onclick: runQuery }, 'Run query'),
+        el('button', { class: 'btn', onclick: () => { editor.value = ''; store.set('sql:query',''); } }, 'Clear')
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Result'),
+      wrap
+    ));
+  }
+});
+
+/* ---------- Log Viewer (virtual scroll) ---------- */
+const LOG_LINE_HEIGHT = 18;
+
+MODULES.push({
+  id: 'log',
+  name: 'Log Viewer',
+  icon: 'lg',
+  category: 'Text & Data',
+  desc: 'Drop a log file. Virtual scroll, regex search, line counts.',
+  init(c) {
+    c.innerHTML = '';
+    const fileInput = el('input', { type: 'file', accept: '.log,.txt,.json' });
+    const pasteArea = el('textarea', { spellcheck: 'false', placeholder: 'Or paste log lines here…', style: 'min-height:80px' });
+    const search = el('input', { type: 'text', placeholder: 'Search (regex). Empty = all lines.' });
+    const onlyMatches = el('input', { type: 'checkbox' });
+    const status = el('div', { class: 'status' });
+    const wrap = el('div', { class: 'log-wrap' });
+    const spacer = el('div', { class: 'log-spacer' });
+    const render = el('div', { class: 'log-render' });
+    wrap.appendChild(spacer);
+    wrap.appendChild(render);
+
+    let lines = [];
+    let visible = []; // indices into lines that match the filter
+    let re = null;
+
+    function setLines(arr) {
+      const MAX = 500000;
+      if (arr.length > MAX) {
+        status.textContent = '⚠ truncated to ' + MAX.toLocaleString() + ' / ' + arr.length.toLocaleString() + ' lines';
+        status.className = 'status warn';
+        lines = arr.slice(0, MAX);
+      } else {
+        lines = arr;
+        status.textContent = '✓ ' + lines.length.toLocaleString() + ' lines';
+        status.className = 'status ok';
+      }
+      applyFilter();
+    }
+    function applyFilter() {
+      const q = search.value;
+      re = null;
+      if (q) { try { re = new RegExp(q, 'i'); } catch { re = null; } }
+      if (!re) { visible = lines.map((_, i) => i); }
+      else if (onlyMatches.checked) { visible = []; for (let i = 0; i < lines.length; i++) if (re.test(lines[i])) visible.push(i); }
+      else { visible = lines.map((_, i) => i); }
+      const matchCount = re ? lines.reduce((n, l) => n + (re.test(l) ? 1 : 0), 0) : 0;
+      status.textContent = '✓ ' + lines.length.toLocaleString() + ' lines' + (re ? ' · ' + matchCount.toLocaleString() + ' matches' : '');
+      status.className = 'status ok';
+      spacer.style.height = (visible.length * LOG_LINE_HEIGHT) + 'px';
+      drawWindow();
+    }
+    function highlight(line) {
+      if (!re) return [document.createTextNode(line)];
+      const parts = [];
+      let last = 0;
+      const globalRe = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+      let m;
+      while ((m = globalRe.exec(line)) !== null) {
+        if (m.index > last) parts.push(document.createTextNode(line.slice(last, m.index)));
+        parts.push(el('span', { class: 'hl' }, m[0] || ''));
+        last = m.index + (m[0]?.length || 1);
+        if (m[0] === '') globalRe.lastIndex++;
+      }
+      if (last < line.length) parts.push(document.createTextNode(line.slice(last)));
+      return parts;
+    }
+    function drawWindow() {
+      const top = wrap.scrollTop;
+      const h = wrap.clientHeight;
+      const start = Math.max(0, Math.floor(top / LOG_LINE_HEIGHT) - 5);
+      const end = Math.min(visible.length, Math.ceil((top + h) / LOG_LINE_HEIGHT) + 5);
+      render.innerHTML = '';
+      render.style.transform = 'translateY(' + (start * LOG_LINE_HEIGHT) + 'px)';
+      for (let i = start; i < end; i++) {
+        const idx = visible[i];
+        const line = lines[idx] || '';
+        const isMatch = re && re.test(line);
+        const row = el('div', { class: 'log-line' + (isMatch ? ' match' : '') });
+        row.appendChild(el('span', { class: 'num' }, String(idx + 1)));
+        const text = el('span', { class: 'text' });
+        highlight(line).forEach(n => text.appendChild(n));
+        row.appendChild(text);
+        render.appendChild(row);
+      }
+    }
+    wrap.addEventListener('scroll', drawWindow);
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      const text = await f.text();
+      pasteArea.value = '';
+      setLines(text.split(/\r?\n/));
+    });
+    pasteArea.addEventListener('input', () => {
+      if (pasteArea.value) setLines(pasteArea.value.split(/\r?\n/));
+    });
+    search.addEventListener('input', applyFilter);
+    onlyMatches.addEventListener('change', applyFilter);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Drop file'), fileInput,
+        el('span', { class: 'spacer' }), status
+      ),
+      pasteArea,
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        search,
+        el('label', { style: 'display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-dim);white-space:nowrap' }, onlyMatches, 'Only matches')
+      ),
+      wrap
+    ));
+    // Seed
+    setLines([
+      '2026-04-06T10:00:00Z INFO  app started, listening on :8080',
+      '2026-04-06T10:00:01Z INFO  database connected (postgres://localhost)',
+      '2026-04-06T10:00:14Z WARN  slow query: SELECT * FROM users (1432ms)',
+      '2026-04-06T10:00:42Z ERROR auth: token expired for user_id=12',
+      '2026-04-06T10:00:43Z INFO  request GET /api/health 200 (3ms)',
+      '2026-04-06T10:01:02Z ERROR upstream timeout: payments.example.com',
+      '2026-04-06T10:01:15Z INFO  request POST /api/login 401 (12ms)',
+    ]);
+  }
+});
 
 /* ============================================================
    APP SHELL

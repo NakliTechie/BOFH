@@ -20,23 +20,39 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 
 ---
 
-## What's in it (Phases 1 + 2)
+## What's in it (Phases 1 + 2 + 3 — 15 modules)
+
+**Text & Data**
 
 | Module | What it does |
 |---|---|
 | **JSON** | Format, validate, minify, collapsible tree view, JSONPath query |
+| **YAML** | YAML ↔ JSON conversion via js-yaml (lazy CDN) |
+| **Markdown** | Live preview with GFM tables / fenced code via marked.js (lazy CDN) |
+| **Diff** | Line-level diff with inline word-level highlighting (LCS, pure JS) |
+| **CSV** | Drop CSV/TSV → sortable table, filter, regex find/replace, dedup, export. Papa Parse (lazy CDN). |
+| **SQL** | Drop CSV → BOFH infers types and creates a SQLite table → write SQL → results. sql.js WASM (~1MB, lazy). |
+| **Log Viewer** | Drop a log file → virtual scroll up to 500K lines + live regex search. Pure JS. |
+
+**Crypto & Security**
+
+| Module | What it does |
+|---|---|
 | **JWT** | Decode header/payload, verify HS256/384/512 and RS256/384/512, expiry & nbf checks, claim highlights |
 | **Hash** | SHA-1/256/384/512 + MD5 + HMAC. Text or file. Hex / base64 / base64url. Compare against expected. |
 | **Base64** | Encode/decode text and files, URL-safe variant |
 | **URL** | Encode/decode (component or whole-URL), parse into components + query params, build from base + kv pairs |
-| **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview |
 | **Keys** | Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs → SPKI/PKCS#8 PEM. Decode PEM public keys and X.509 certificates (subject, issuer, validity, SPKI fingerprint). |
+
+**Converters & Generators**
+
+| Module | What it does |
+|---|---|
 | **Timestamp** | Unix epoch ↔ human, timezone-aware (`Intl`), relative time |
 | **UUID** | Generate v4 (random) and v7 (time-ordered, database-friendly), bulk, parse & validate |
+| **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview |
 
-Phase 3 (next): CSV, SQL, YAML, Diff, Markdown, Log Viewer.
-
-Phase 4: HTTP Status, User Agent, Color, IP/Subnet, Cron.
+Phase 4 (next): HTTP Status, User Agent, Color, IP/Subnet, Cron — small reference modules to round out the set.
 
 ---
 

@@ -562,7 +562,17 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   overflow: auto;
   padding: 22px 26px;
   box-shadow: 0 12px 50px rgba(0,0,0,0.5);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) transparent;
 }
+.modal::-webkit-scrollbar { width: 10px; height: 10px; }
+.modal::-webkit-scrollbar-track { background: transparent; }
+.modal::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 5px;
+  border: 2px solid var(--bg-2);
+}
+.modal::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 .modal h2 { margin: 0 0 6px; font-size: 18px; }
 .modal h3 { margin: 14px 0 6px; font-size: 13.5px; color: var(--text); }
 .modal p, .modal li { font-size: 13px; color: var(--text-dim); }

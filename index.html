@@ -460,6 +460,76 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 .log-line.match .text { background: rgba(255,200,80,0.18); }
 .log-line .hl { background: rgba(255,200,80,0.55); color: var(--text); border-radius: 2px; }
 
+/* ----- HTTP status / reference cards ----- */
+.ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+.ref-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 9px 13px;
+}
+.ref-card .head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+.ref-card .code {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.ref-card .name {
+  font-size: 13.5px;
+  color: var(--text);
+}
+.ref-card .desc { font-size: 12.5px; color: var(--text-dim); }
+.ref-card .cause { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.ref-card.cat-1xx .code { color: #60a5fa; }
+.ref-card.cat-2xx .code { color: var(--ok); }
+.ref-card.cat-3xx .code { color: var(--warn); }
+.ref-card.cat-4xx .code { color: #fb923c; }
+.ref-card.cat-5xx .code { color: var(--err); }
+.ref-empty {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text-faint);
+  padding: 16px;
+  text-align: center;
+}
+
+/* ----- Color picker / swatches ----- */
+.color-swatch {
+  width: 100%;
+  height: 60px;
+  border-radius: 5px;
+  border: 1px solid var(--border-2);
+  margin-top: 4px;
+}
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (max-width: 760px) { .color-grid { grid-template-columns: 1fr; } }
+.contrast-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  margin-right: 6px;
+}
+.contrast-badge.pass { background: rgba(74,222,128,0.18); color: var(--ok); }
+.contrast-badge.fail { background: rgba(248,113,113,0.18); color: var(--err); }
+
 /* ----- Loading badge ----- */
 .loading-badge {
   display: inline-block;
@@ -630,16 +700,12 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="modal">
     <h2>BOFH</h2>
     <p style="font-size:13.5px; color:var(--text);">Browser-native dev toolkit. <strong>Nothing leaves your device.</strong></p>
-    <h3>What's in here</h3>
+    <h3>20 modules. 4 categories.</h3>
     <ul>
-      <li><strong>JSON / YAML / Markdown</strong> — format, validate, convert, live-preview</li>
-      <li><strong>JWT</strong> — decode + verify HS256/RS256 with the Web Crypto API</li>
-      <li><strong>Hash / Base64 / URL / Regex</strong> — all the encode / decode / match staples</li>
-      <li><strong>Keys</strong> — generate RSA/EC keypairs, decode PEM certificates</li>
-      <li><strong>Diff</strong> — line + inline word-level diff between two texts</li>
-      <li><strong>CSV / SQL</strong> — drop a CSV, get a sortable table or query it with SQLite</li>
-      <li><strong>Log Viewer</strong> — virtual-scroll big logs with regex search</li>
-      <li><strong>Timestamp / UUID</strong> — epoch ↔ human, v4 + v7 generation</li>
+      <li><strong>Text & Data</strong> — JSON · YAML · Markdown · Diff · CSV · SQL · Log Viewer</li>
+      <li><strong>Crypto & Security</strong> — JWT · Hash · Base64 · URL · Keys</li>
+      <li><strong>Converters & Generators</strong> — Timestamp · UUID · Regex · Color · IP/Subnet · Cron</li>
+      <li><strong>Reference</strong> — HTTP Status · User Agent</li>
     </ul>
     <p style="font-size:12.5px;">Every transformation runs locally — no servers, no telemetry, no random S3 buckets seeing your tokens.</p>
     <div class="modal-foot">
@@ -701,6 +767,16 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
       <p>Real SQLite in your browser via sql.js (~1MB WASM, lazy). Drop a CSV → BOFH infers column types (INTEGER/REAL/TEXT) and creates a table named after the file → write SQL → see results. Cmd/Ctrl+Enter runs the query. The database is in-memory only; nothing is persisted.</p>
       <h3>Log Viewer</h3>
       <p>Drop a log file or paste lines. Virtual scroll handles up to 500K lines without breaking a sweat. Type a regex in the search box for live highlighting; toggle "Only matches" to filter. Status bar shows total lines and match count.</p>
+      <h3>HTTP Status</h3>
+      <p>Searchable reference for every HTTP status code from 1xx through 5xx, including the WebDAV and CDN-flavored ones. Click any card to copy "<code>code name</code>" to the clipboard. Filter matches code, name, or description.</p>
+      <h3>User Agent</h3>
+      <p>Shows your current <code>navigator.userAgent</code> and parses it into browser, version, engine, OS, and device type. Paste any UA string to parse it. Modern browsers also expose structured data via <code>navigator.userAgentData</code> (Client Hints), shown when available.</p>
+      <h3>Color</h3>
+      <p>Two color inputs side-by-side. Each parses any CSS color (hex, rgb, hsl, oklch, named) via the browser's own parser, shows the swatch, and emits hex/rgb/hsl/oklch versions. Click any output to copy. The bottom panel shows the WCAG contrast ratio between A and B with pass/fail badges for AA / AAA at normal and large text sizes.</p>
+      <h3>IP / Subnet</h3>
+      <p>IPv4 CIDR calculator. Enter <code>10.0.0.42/22</code> and get network, broadcast, first/last host, total addrs, usable hosts, subnet mask, wildcard mask, address class, RFC1918 classification, and 32-bit binary representation of IP, mask, and network. Click any value to copy.</p>
+      <h3>Cron</h3>
+      <p>Parses 5-field cron expressions (minute, hour, day-of-month, month, day-of-week). Shows a plain-English description of common patterns, expanded value sets per field, and the next 10 run times in your local timezone. Picks up the Vixie cron rule for combined day-of-month + day-of-week (OR semantics). Sample dropdown for common patterns.</p>
     </div>
     <div class="modal-pane" data-pane="privacy">
       <p>BOFH is a single HTML file. There is no server, no analytics, no fonts loaded from a CDN, no third-party scripts (Phase 1).</p>
@@ -2854,6 +2930,644 @@ MODULES.push({
       '2026-04-06T10:01:02Z ERROR upstream timeout: payments.example.com',
       '2026-04-06T10:01:15Z INFO  request POST /api/login 401 (12ms)',
     ]);
+  }
+});
+
+/* ============================================================
+   PHASE 4 — HTTP Status, User Agent, Color, IP/Subnet, Cron
+   ============================================================ */
+
+/* ---------- HTTP Status ---------- */
+const HTTP_STATUS = [
+  // 1xx
+  [100, 'Continue', 'Server got the request headers and the client should proceed to send the body.'],
+  [101, 'Switching Protocols', 'Server is switching protocols as requested by the client (e.g. WebSocket upgrade).'],
+  [102, 'Processing', 'Server has received and is processing the request, but no response is available yet.'],
+  [103, 'Early Hints', 'Used to return some response headers (e.g. Link preload) before the final response.'],
+  // 2xx
+  [200, 'OK', 'Standard success response.'],
+  [201, 'Created', 'Request succeeded and a new resource was created.'],
+  [202, 'Accepted', 'Request accepted for processing but not yet completed.'],
+  [203, 'Non-Authoritative Information', 'Returned info is from a transforming proxy, not the origin.'],
+  [204, 'No Content', 'Request succeeded but there is no body to return.'],
+  [205, 'Reset Content', 'Tells the client to reset the document view.'],
+  [206, 'Partial Content', 'Range request succeeded — only the requested portion is returned.'],
+  [207, 'Multi-Status', 'WebDAV: multiple status codes for a single request.'],
+  [208, 'Already Reported', 'WebDAV: members of a binding already enumerated in a previous reply.'],
+  // 3xx
+  [300, 'Multiple Choices', 'Multiple options for the resource are available.'],
+  [301, 'Moved Permanently', 'Resource has been permanently moved to a new URL.'],
+  [302, 'Found', 'Resource temporarily lives at another URL.'],
+  [303, 'See Other', 'Response is at a different URL — fetch with GET.'],
+  [304, 'Not Modified', 'Cached version is still valid; no body returned.'],
+  [307, 'Temporary Redirect', 'Like 302, but the request method must not change.'],
+  [308, 'Permanent Redirect', 'Like 301, but the request method must not change.'],
+  // 4xx
+  [400, 'Bad Request', 'The server can\'t or won\'t process the request — usually malformed syntax. Check JSON body, headers, or query params.'],
+  [401, 'Unauthorized', 'Authentication is required and has failed or not been provided. Check the Authorization header / token.'],
+  [402, 'Payment Required', 'Reserved for future use; sometimes used by APIs to indicate quota / billing issues.'],
+  [403, 'Forbidden', 'Server understood the request but refuses to authorize it. Token is valid but lacks permission for this resource.'],
+  [404, 'Not Found', 'Server can\'t find the requested resource. Verify the URL path.'],
+  [405, 'Method Not Allowed', 'The HTTP method is not supported for this resource. Check whether the endpoint expects GET vs POST etc.'],
+  [406, 'Not Acceptable', 'Server can\'t produce a response matching the Accept headers.'],
+  [407, 'Proxy Authentication Required', 'Like 401 but for proxies.'],
+  [408, 'Request Timeout', 'Client took too long to send the request.'],
+  [409, 'Conflict', 'Request conflicts with current state of the resource (e.g. duplicate key, version mismatch).'],
+  [410, 'Gone', 'Resource was here but is permanently gone — no forwarding address.'],
+  [411, 'Length Required', 'Request needs a Content-Length header.'],
+  [412, 'Precondition Failed', 'A precondition (e.g. If-Match) given in the request headers evaluated to false.'],
+  [413, 'Payload Too Large', 'Request body is larger than the server is willing to process.'],
+  [414, 'URI Too Long', 'URI is too long for the server to process.'],
+  [415, 'Unsupported Media Type', 'Request entity has a media type the server can\'t handle.'],
+  [416, 'Range Not Satisfiable', 'Range header asks for a portion that doesn\'t exist in the resource.'],
+  [417, 'Expectation Failed', 'Expect header expectation can\'t be met.'],
+  [418, "I'm a teapot", 'April Fools joke from RFC 2324. Some real APIs use it for blocked content.'],
+  [421, 'Misdirected Request', 'Request was sent to a server that can\'t produce a response for it.'],
+  [422, 'Unprocessable Entity', 'Request is well-formed but semantically invalid (e.g. validation errors). Check field constraints.'],
+  [423, 'Locked', 'WebDAV: the resource is locked.'],
+  [424, 'Failed Dependency', 'WebDAV: the request failed due to failure of a previous request.'],
+  [425, 'Too Early', 'Server is unwilling to risk processing a request that might be replayed.'],
+  [426, 'Upgrade Required', 'Client should switch to a different protocol (e.g. TLS).'],
+  [428, 'Precondition Required', 'Origin server requires the request to be conditional.'],
+  [429, 'Too Many Requests', 'Rate-limited. Look for Retry-After header.'],
+  [431, 'Request Header Fields Too Large', 'Headers (or one specific header) are too large.'],
+  [451, 'Unavailable For Legal Reasons', 'Resource is unavailable due to legal demands.'],
+  // 5xx
+  [500, 'Internal Server Error', 'Generic server-side failure. Check the server logs — this is the server\'s fault, not yours.'],
+  [501, 'Not Implemented', 'Server doesn\'t recognize or support the request method.'],
+  [502, 'Bad Gateway', 'Server (acting as a gateway) got an invalid response from an upstream server.'],
+  [503, 'Service Unavailable', 'Server is temporarily down or overloaded. Try again later; check Retry-After.'],
+  [504, 'Gateway Timeout', 'Upstream server didn\'t respond in time.'],
+  [505, 'HTTP Version Not Supported', 'Server doesn\'t support the HTTP protocol version used.'],
+  [506, 'Variant Also Negotiates', 'Internal configuration error in content negotiation.'],
+  [507, 'Insufficient Storage', 'WebDAV: server is out of storage to process the request.'],
+  [508, 'Loop Detected', 'WebDAV: server detected an infinite loop.'],
+  [510, 'Not Extended', 'Further extensions are required for the server to fulfill the request.'],
+  [511, 'Network Authentication Required', 'Captive-portal style: client needs to authenticate to gain network access.'],
+];
+
+MODULES.push({
+  id: 'http',
+  name: 'HTTP Status',
+  icon: '⚑',
+  category: 'Reference',
+  desc: 'Searchable reference for every HTTP status code.',
+  init(c) {
+    c.innerHTML = '';
+    const search = el('input', { type: 'text', placeholder: 'Search code, name, or description…' });
+    search.value = store.get('http:q', '');
+    const list = el('div', { class: 'ref-list' });
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      list.innerHTML = '';
+      const filtered = HTTP_STATUS.filter(([code, name, desc]) =>
+        !q || String(code).includes(q) || name.toLowerCase().includes(q) || desc.toLowerCase().includes(q));
+      if (!filtered.length) { list.appendChild(el('div', { class: 'ref-empty' }, 'No matches')); return; }
+      filtered.forEach(([code, name, desc]) => {
+        const cat = 'cat-' + Math.floor(code / 100) + 'xx';
+        const card = el('div', { class: 'ref-card ' + cat });
+        card.appendChild(el('div', { class: 'head' },
+          el('span', { class: 'code' }, String(code)),
+          el('span', { class: 'name' }, name)
+        ));
+        card.appendChild(el('div', { class: 'desc' }, desc));
+        card.onclick = () => copy(code + ' ' + name);
+        card.style.cursor = 'pointer';
+        card.title = 'Click to copy';
+        list.appendChild(card);
+      });
+      store.set('http:q', search.value);
+    }
+    search.addEventListener('input', render);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Filter'),
+      search,
+      list
+    ));
+    render();
+  }
+});
+
+/* ---------- User Agent ---------- */
+function parseUA(ua) {
+  const out = { browser: 'Unknown', version: '', engine: 'Unknown', os: 'Unknown', device: 'Desktop' };
+  // Browsers
+  if (/Edg\/([\d.]+)/.test(ua)) { out.browser = 'Edge'; out.version = RegExp.$1; }
+  else if (/OPR\/([\d.]+)/.test(ua) || /Opera\/([\d.]+)/.test(ua)) { out.browser = 'Opera'; out.version = RegExp.$1; }
+  else if (/Chrome\/([\d.]+)/.test(ua) && !/Chromium/.test(ua)) { out.browser = 'Chrome'; out.version = RegExp.$1; }
+  else if (/Firefox\/([\d.]+)/.test(ua)) { out.browser = 'Firefox'; out.version = RegExp.$1; }
+  else if (/Version\/([\d.]+).*Safari/.test(ua)) { out.browser = 'Safari'; out.version = RegExp.$1; }
+  // Engine
+  if (/Gecko\/[\d.]+/.test(ua) && /Firefox/.test(ua)) out.engine = 'Gecko';
+  else if (/AppleWebKit\/([\d.]+)/.test(ua)) out.engine = 'WebKit/Blink ' + RegExp.$1;
+  // OS
+  if (/Windows NT 10/.test(ua)) out.os = 'Windows 10/11';
+  else if (/Windows NT/.test(ua)) out.os = 'Windows (older)';
+  else if (/Mac OS X ([\d_.]+)/.test(ua)) out.os = 'macOS ' + RegExp.$1.replace(/_/g, '.');
+  else if (/Android ([\d.]+)/.test(ua)) { out.os = 'Android ' + RegExp.$1; out.device = 'Mobile'; }
+  else if (/iPhone OS ([\d_]+)/.test(ua)) { out.os = 'iOS ' + RegExp.$1.replace(/_/g, '.'); out.device = 'Mobile'; }
+  else if (/iPad/.test(ua)) { out.os = 'iPadOS'; out.device = 'Tablet'; }
+  else if (/Linux/.test(ua)) out.os = 'Linux';
+  else if (/CrOS/.test(ua)) out.os = 'ChromeOS';
+  // Device hints
+  if (/Mobile/.test(ua) && out.device === 'Desktop') out.device = 'Mobile';
+  if (/Tablet/.test(ua)) out.device = 'Tablet';
+  if (/(bot|crawl|spider)/i.test(ua)) out.device = 'Bot';
+  return out;
+}
+
+MODULES.push({
+  id: 'ua',
+  name: 'User Agent',
+  icon: 'ua',
+  category: 'Reference',
+  desc: 'Show your current user agent. Or paste any UA to parse it.',
+  init(c) {
+    c.innerHTML = '';
+    const yourUa = navigator.userAgent;
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste a UA string to parse…', style: 'min-height:80px' });
+    input.value = store.get('ua:input', yourUa);
+    const out = el('div', { class: 'kv' });
+    const hints = el('div', { class: 'kv' });
+
+    function render() {
+      out.innerHTML = '';
+      const ua = input.value.trim();
+      if (!ua) return;
+      const parsed = parseUA(ua);
+      Object.entries(parsed).forEach(([k, v]) => {
+        out.appendChild(el('div', { class: 'k' }, k));
+        out.appendChild(el('div', { class: 'v' }, v));
+      });
+      store.set('ua:input', ua);
+    }
+    input.addEventListener('input', render);
+
+    // Client Hints (modern API)
+    hints.innerHTML = '';
+    if (navigator.userAgentData) {
+      const d = navigator.userAgentData;
+      hints.appendChild(el('div', { class: 'k' }, 'mobile'));
+      hints.appendChild(el('div', { class: 'v' }, String(d.mobile)));
+      hints.appendChild(el('div', { class: 'k' }, 'platform'));
+      hints.appendChild(el('div', { class: 'v' }, d.platform || '(none)'));
+      hints.appendChild(el('div', { class: 'k' }, 'brands'));
+      hints.appendChild(el('div', { class: 'v' }, (d.brands || []).map(b => b.brand + ' ' + b.version).join(', ')));
+    } else {
+      hints.appendChild(el('div', { class: 'k' }, 'navigator.userAgentData'));
+      hints.appendChild(el('div', { class: 'v warn' }, 'not supported in this browser'));
+    }
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Your current user agent'),
+      el('pre', { class: 'pre-out' }, yourUa),
+      el('div', { class: 'btn-row' },
+        el('button', { class: 'btn', onclick: () => copy(yourUa) }, 'Copy'),
+        el('button', { class: 'btn', onclick: () => { input.value = yourUa; render(); } }, 'Reset to current')
+      ),
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Parse a UA'),
+      input,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Parsed'),
+      out,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Client Hints (navigator.userAgentData)'),
+      hints
+    ));
+    render();
+  }
+});
+
+/* ---------- Color ---------- */
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(c => Math.round(c).toString(16).padStart(2, '0')).join('');
+}
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+function srgbToLinear(c) {
+  c /= 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+function rgbToOklch(r, g, b) {
+  const lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
+  const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+  const m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
+  const s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
+  const l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+  const L = 0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_;
+  const A = 1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_;
+  const B = 0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_;
+  const C = Math.sqrt(A*A + B*B);
+  let H = Math.atan2(B, A) * 180 / Math.PI;
+  if (H < 0) H += 360;
+  return { L: +(L*100).toFixed(2), C: +C.toFixed(4), H: +H.toFixed(2) };
+}
+function relativeLuminance(r, g, b) {
+  return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b);
+}
+function contrastRatio(rgb1, rgb2) {
+  const L1 = relativeLuminance(rgb1.r, rgb1.g, rgb1.b);
+  const L2 = relativeLuminance(rgb2.r, rgb2.g, rgb2.b);
+  const lo = Math.min(L1, L2), hi = Math.max(L1, L2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+function parseAnyColor(input) {
+  // Use the browser's CSS parser via a temp element
+  const probe = document.createElement('div');
+  probe.style.color = '';
+  probe.style.color = input;
+  if (!probe.style.color) return null;
+  document.body.appendChild(probe);
+  const computed = getComputedStyle(probe).color;
+  document.body.removeChild(probe);
+  const m = computed.match(/rgba?\(([^)]+)\)/);
+  if (!m) return null;
+  const parts = m[1].split(',').map(s => parseFloat(s.trim()));
+  return { r: parts[0], g: parts[1], b: parts[2], a: parts[3] ?? 1 };
+}
+
+MODULES.push({
+  id: 'color',
+  name: 'Color',
+  icon: '◆',
+  category: 'Converters & Generators',
+  desc: 'Convert colors between formats. Check WCAG contrast.',
+  init(c) {
+    c.innerHTML = '';
+    const inputA = el('input', { type: 'text', placeholder: '#ff7a45 or rgb(255,122,69) or oklch(0.7 0.18 40)' });
+    inputA.value = store.get('color:a', '#ff7a45');
+    const swatchA = el('div', { class: 'color-swatch' });
+    const outA = el('div', { class: 'kv' });
+    const pickerA = el('input', { type: 'color' });
+
+    const inputB = el('input', { type: 'text', placeholder: 'Background color (for contrast check)' });
+    inputB.value = store.get('color:b', '#0f1115');
+    const swatchB = el('div', { class: 'color-swatch' });
+    const outB = el('div', { class: 'kv' });
+    const pickerB = el('input', { type: 'color' });
+
+    const contrastBox = el('div', { class: 'kv' });
+
+    function renderColor(input, swatch, out, picker, key) {
+      out.innerHTML = '';
+      const c = parseAnyColor(input.value);
+      if (!c) { swatch.style.background = 'transparent'; out.appendChild(el('div',{class:'k'},'error')); out.appendChild(el('div',{class:'v err'},'invalid color')); return null; }
+      swatch.style.background = `rgb(${c.r}, ${c.g}, ${c.b})`;
+      const hex = rgbToHex(c.r, c.g, c.b);
+      const hsl = rgbToHsl(c.r, c.g, c.b);
+      const oklch = rgbToOklch(c.r, c.g, c.b);
+      try { picker.value = hex; } catch {}
+      const rows = [
+        ['hex', hex],
+        ['rgb', `rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`],
+        ['hsl', `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`],
+        ['oklch', `oklch(${(oklch.L/100).toFixed(3)} ${oklch.C.toFixed(3)} ${oklch.H.toFixed(1)})`],
+      ];
+      rows.forEach(([k, v]) => {
+        out.appendChild(el('div', { class: 'k' }, k));
+        const vd = el('div', { class: 'v' }, v);
+        vd.style.cursor = 'pointer'; vd.title = 'Click to copy';
+        vd.onclick = () => copy(v);
+        out.appendChild(vd);
+      });
+      store.set(key, input.value);
+      return c;
+    }
+    function renderContrast() {
+      contrastBox.innerHTML = '';
+      const a = parseAnyColor(inputA.value);
+      const b = parseAnyColor(inputB.value);
+      if (!a || !b) return;
+      const ratio = contrastRatio(a, b);
+      const r = ratio.toFixed(2);
+      const aaNormal = ratio >= 4.5;
+      const aaLarge = ratio >= 3.0;
+      const aaaNormal = ratio >= 7.0;
+      const aaaLarge = ratio >= 4.5;
+      contrastBox.appendChild(el('div', { class: 'k' }, 'ratio'));
+      contrastBox.appendChild(el('div', { class: 'v' }, r + ':1'));
+      const badges = el('div');
+      badges.appendChild(el('span', { class: 'contrast-badge ' + (aaNormal ? 'pass' : 'fail') }, (aaNormal ? '✓' : '✗') + ' AA normal text'));
+      badges.appendChild(el('span', { class: 'contrast-badge ' + (aaLarge ? 'pass' : 'fail') }, (aaLarge ? '✓' : '✗') + ' AA large text'));
+      badges.appendChild(el('span', { class: 'contrast-badge ' + (aaaNormal ? 'pass' : 'fail') }, (aaaNormal ? '✓' : '✗') + ' AAA normal'));
+      badges.appendChild(el('span', { class: 'contrast-badge ' + (aaaLarge ? 'pass' : 'fail') }, (aaaLarge ? '✓' : '✗') + ' AAA large'));
+      contrastBox.appendChild(el('div', { class: 'k' }, 'wcag'));
+      contrastBox.appendChild(badges);
+    }
+    function update() {
+      renderColor(inputA, swatchA, outA, pickerA, 'color:a');
+      renderColor(inputB, swatchB, outB, pickerB, 'color:b');
+      renderContrast();
+    }
+    inputA.addEventListener('input', update);
+    inputB.addEventListener('input', update);
+    pickerA.addEventListener('input', () => { inputA.value = pickerA.value; update(); });
+    pickerB.addEventListener('input', () => { inputB.value = pickerB.value; update(); });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'color-grid' },
+        el('div', {},
+          el('div', { class: 'label' }, 'Color A (foreground)'),
+          inputA, swatchA,
+          el('div', { class: 'btn-row', style: 'margin-top:6px' }, pickerA),
+          outA
+        ),
+        el('div', {},
+          el('div', { class: 'label' }, 'Color B (background)'),
+          inputB, swatchB,
+          el('div', { class: 'btn-row', style: 'margin-top:6px' }, pickerB),
+          outB
+        )
+      ),
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'WCAG contrast'),
+      contrastBox
+    ));
+    update();
+  }
+});
+
+/* ---------- IP / Subnet (IPv4) ---------- */
+function ipToInt(ip) {
+  const parts = ip.split('.').map(p => parseInt(p, 10));
+  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) throw new Error('Invalid IPv4 address');
+  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+}
+function intToIp(n) {
+  return [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff].join('.');
+}
+function intToBin(n) {
+  const b = n.toString(2).padStart(32, '0');
+  return b.slice(0,8) + '.' + b.slice(8,16) + '.' + b.slice(16,24) + '.' + b.slice(24,32);
+}
+function ipClass(ip) {
+  const first = (ip >>> 24) & 0xff;
+  if (first < 128) return 'A';
+  if (first < 192) return 'B';
+  if (first < 224) return 'C';
+  if (first < 240) return 'D (multicast)';
+  return 'E (reserved)';
+}
+function isPrivate(ip) {
+  const a = (ip >>> 24) & 0xff, b = (ip >>> 16) & 0xff;
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 127) return 'loopback';
+  if (a === 169 && b === 254) return 'link-local';
+  return false;
+}
+
+MODULES.push({
+  id: 'subnet',
+  name: 'IP / Subnet',
+  icon: 'ip',
+  category: 'Converters & Generators',
+  desc: 'IPv4 CIDR calculator. Network, broadcast, range, mask, binary.',
+  init(c) {
+    c.innerHTML = '';
+    const input = el('input', { type: 'text', placeholder: '192.168.1.10/24' });
+    input.value = store.get('subnet:input', '10.0.0.42/22');
+    const out = el('div', { class: 'kv' });
+
+    function update() {
+      out.innerHTML = '';
+      const v = input.value.trim();
+      if (!v) return;
+      try {
+        const [ipStr, prefStr] = v.split('/');
+        const prefix = parseInt(prefStr ?? '32', 10);
+        if (isNaN(prefix) || prefix < 0 || prefix > 32) throw new Error('Prefix must be 0–32');
+        const ip = ipToInt(ipStr);
+        const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+        const wildcard = (~mask) >>> 0;
+        const network = (ip & mask) >>> 0;
+        const broadcast = (network | wildcard) >>> 0;
+        const totalAddrs = prefix === 32 ? 1 : Math.pow(2, 32 - prefix);
+        const usableHosts = prefix >= 31 ? totalAddrs : totalAddrs - 2;
+        const firstHost = prefix >= 31 ? network : (network + 1) >>> 0;
+        const lastHost  = prefix >= 31 ? broadcast : (broadcast - 1) >>> 0;
+        const priv = isPrivate(ip);
+        const rows = [
+          ['IP address',  intToIp(ip)],
+          ['Prefix',      '/' + prefix],
+          ['Subnet mask', intToIp(mask)],
+          ['Wildcard',    intToIp(wildcard)],
+          ['Network',     intToIp(network)],
+          ['Broadcast',   intToIp(broadcast)],
+          ['First host',  intToIp(firstHost)],
+          ['Last host',   intToIp(lastHost)],
+          ['Total addrs', totalAddrs.toLocaleString()],
+          ['Usable hosts', usableHosts.toLocaleString()],
+          ['Class',       ipClass(ip)],
+          ['Type',        priv === false ? 'public' : (typeof priv === 'string' ? priv : 'private (RFC1918)')],
+          ['IP (binary)',      intToBin(ip)],
+          ['Mask (binary)',    intToBin(mask)],
+          ['Network (binary)', intToBin(network)],
+        ];
+        rows.forEach(([k, val]) => {
+          out.appendChild(el('div', { class: 'k' }, k));
+          const vd = el('div', { class: 'v' }, val);
+          vd.style.cursor = 'pointer'; vd.title = 'Click to copy';
+          vd.onclick = () => copy(val);
+          out.appendChild(vd);
+        });
+        store.set('subnet:input', v);
+      } catch (e) {
+        out.appendChild(el('div', { class: 'k' }, 'error'));
+        out.appendChild(el('div', { class: 'v err' }, e.message));
+      }
+    }
+    input.addEventListener('input', update);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'CIDR (IPv4)'),
+      input,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Subnet'),
+      out
+    ));
+    update();
+  }
+});
+
+/* ---------- Cron ---------- */
+const CRON_RANGES = [
+  { name: 'minute',       min: 0, max: 59 },
+  { name: 'hour',         min: 0, max: 23 },
+  { name: 'day-of-month', min: 1, max: 31 },
+  { name: 'month',        min: 1, max: 12 },
+  { name: 'day-of-week',  min: 0, max: 7  }, // 0 and 7 = Sunday
+];
+const CRON_MONTHS = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+const CRON_DOWS = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 };
+
+function parseCronField(field, range) {
+  const set = new Set();
+  field.split(',').forEach(part => {
+    let step = 1;
+    if (part.includes('/')) {
+      const [a, b] = part.split('/');
+      step = parseInt(b, 10);
+      part = a;
+      if (isNaN(step) || step < 1) throw new Error('Invalid step in "' + field + '"');
+    }
+    let lo, hi;
+    if (part === '*') { lo = range.min; hi = range.max; }
+    else if (part.includes('-')) {
+      const [a, b] = part.split('-');
+      lo = parseFieldVal(a, range.name);
+      hi = parseFieldVal(b, range.name);
+    } else {
+      lo = hi = parseFieldVal(part, range.name);
+    }
+    if (lo < range.min || hi > range.max || lo > hi) throw new Error(`"${field}" out of range ${range.min}-${range.max}`);
+    for (let i = lo; i <= hi; i += step) set.add(i);
+  });
+  // Normalize Sunday: dow 7 → 0
+  if (range.name === 'day-of-week' && set.has(7)) { set.delete(7); set.add(0); }
+  return set;
+}
+function parseFieldVal(s, fieldName) {
+  s = s.toLowerCase();
+  if (fieldName === 'month' && CRON_MONTHS[s] != null) return CRON_MONTHS[s];
+  if (fieldName === 'day-of-week' && CRON_DOWS[s] != null) return CRON_DOWS[s];
+  const n = parseInt(s, 10);
+  if (isNaN(n)) throw new Error('Cannot parse "' + s + '"');
+  return n;
+}
+function describeCron(parts) {
+  const [m, h, dom, mo, dow] = parts;
+  // A few canonical patterns
+  const allMin = m === '*';
+  const exactMin = /^\d+$/.test(m);
+  const exactHour = /^\d+$/.test(h);
+  const allHour = h === '*';
+  const allDom = dom === '*';
+  const allMo = mo === '*';
+  const allDow = dow === '*';
+  if (allMin && allHour && allDom && allMo && allDow) return 'Every minute';
+  if (m === '0' && allHour && allDom && allMo && allDow) return 'Every hour at :00';
+  if (exactMin && exactHour && allDom && allMo && allDow) return `Every day at ${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
+  if (exactMin && exactHour && allDom && allMo && dow === '1-5') return `Weekdays at ${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
+  if (m.startsWith('*/') && allHour && allDom && allMo && allDow) return `Every ${m.slice(2)} minutes`;
+  if (m === '0' && h.startsWith('*/') && allDom && allMo && allDow) return `Every ${h.slice(2)} hours, on the hour`;
+  // Fallback: structured
+  return CRON_RANGES.map((r, i) => r.name + '=' + parts[i]).join('; ');
+}
+function nextRuns(parts, count) {
+  const sets = parts.map((p, i) => parseCronField(p, CRON_RANGES[i]));
+  const [mins, hours, doms, months, dows] = sets;
+  const out = [];
+  let d = new Date(Date.now() + 60000);
+  d.setSeconds(0); d.setMilliseconds(0);
+  let safety = 0;
+  while (out.length < count && safety < 525600) { // up to 1 year of minutes
+    safety++;
+    const M = d.getMinutes();
+    const H = d.getHours();
+    const DoM = d.getDate();
+    const Mo = d.getMonth() + 1;
+    const DoW = d.getDay();
+    if (mins.has(M) && hours.has(H) && months.has(Mo) && (doms.has(DoM) || dows.has(DoW)) && (parts[2] === '*' || doms.has(DoM)) && (parts[4] === '*' || dows.has(DoW))) {
+      // Vixie cron rule: if both dom and dow are restricted, match either; if only one restricted, must match that one.
+      const domR = parts[2] !== '*';
+      const dowR = parts[4] !== '*';
+      let matchDate;
+      if (domR && dowR) matchDate = doms.has(DoM) || dows.has(DoW);
+      else if (domR) matchDate = doms.has(DoM);
+      else if (dowR) matchDate = dows.has(DoW);
+      else matchDate = true;
+      if (matchDate) out.push(new Date(d));
+    }
+    d = new Date(d.getTime() + 60000);
+  }
+  return out;
+}
+
+MODULES.push({
+  id: 'cron',
+  name: 'Cron',
+  icon: '◷',
+  category: 'Converters & Generators',
+  desc: 'Parse cron expressions. Plain-English description and next run times.',
+  init(c) {
+    c.innerHTML = '';
+    const input = el('input', { type: 'text', placeholder: '*/5 * * * *' });
+    input.value = store.get('cron:input', '0 9 * * 1-5');
+    const desc = el('div', { class: 'pre-out' });
+    const fields = el('div', { class: 'kv' });
+    const runs = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+
+    const samples = [
+      ['Every minute', '* * * * *'],
+      ['Every 5 minutes', '*/5 * * * *'],
+      ['Hourly', '0 * * * *'],
+      ['Daily 9am', '0 9 * * *'],
+      ['Weekdays 9am', '0 9 * * 1-5'],
+      ['Mondays 8:30am', '30 8 * * 1'],
+      ['1st of month', '0 0 1 * *'],
+    ];
+    const sampleSel = el('select');
+    sampleSel.appendChild(el('option', { value: '' }, '— sample —'));
+    samples.forEach(([n, v]) => sampleSel.appendChild(el('option', { value: v }, n)));
+    sampleSel.onchange = () => { if (sampleSel.value) { input.value = sampleSel.value; update(); } };
+
+    function update() {
+      desc.textContent = '';
+      fields.innerHTML = '';
+      runs.textContent = '';
+      const v = input.value.trim();
+      if (!v) return;
+      const parts = v.split(/\s+/);
+      if (parts.length !== 5) {
+        status.textContent = '✗ expected 5 fields, got ' + parts.length;
+        status.className = 'status err';
+        return;
+      }
+      try {
+        // Parse each field to validate
+        parts.forEach((p, i) => parseCronField(p, CRON_RANGES[i]));
+        desc.textContent = describeCron(parts);
+        CRON_RANGES.forEach((r, i) => {
+          fields.appendChild(el('div', { class: 'k' }, r.name));
+          fields.appendChild(el('div', { class: 'v' }, parts[i] + (parts[i] === '*' ? '' : ` (${[...parseCronField(parts[i], r)].slice(0, 12).join(',')}${parseCronField(parts[i], r).size > 12 ? ',…' : ''})`)));
+        });
+        const next = nextRuns(parts, 10);
+        runs.textContent = next.map(d => d.toLocaleString() + '  (' + relTime(d.getTime()) + ')').join('\n');
+        status.textContent = '✓ valid · next ' + next.length + ' runs';
+        status.className = 'status ok';
+        store.set('cron:input', v);
+      } catch (e) {
+        status.textContent = '✗ ' + e.message;
+        status.className = 'status err';
+      }
+    }
+    input.addEventListener('input', update);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Cron expression'), input,
+        sampleSel
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:6px' }, status),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Description'),
+      desc,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Fields'),
+      fields,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Next 10 run times (local)'),
+      runs
+    ));
+    update();
   }
 });
 

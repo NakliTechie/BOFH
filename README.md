@@ -20,7 +20,7 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 
 ---
 
-## What's in it (Phases 1 + 2 + 3 — 15 modules)
+## What's in it — 20 modules across 4 categories
 
 **Text & Data**
 
@@ -42,7 +42,7 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 | **Hash** | SHA-1/256/384/512 + MD5 + HMAC. Text or file. Hex / base64 / base64url. Compare against expected. |
 | **Base64** | Encode/decode text and files, URL-safe variant |
 | **URL** | Encode/decode (component or whole-URL), parse into components + query params, build from base + kv pairs |
-| **Keys** | Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs → SPKI/PKCS#8 PEM. Decode PEM public keys and X.509 certificates (subject, issuer, validity, SPKI fingerprint). |
+| **Keys** | Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs → SPKI/PKCS#8 PEM. Decode PEM public keys and X.509 certificates. |
 
 **Converters & Generators**
 
@@ -51,8 +51,16 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 | **Timestamp** | Unix epoch ↔ human, timezone-aware (`Intl`), relative time |
 | **UUID** | Generate v4 (random) and v7 (time-ordered, database-friendly), bulk, parse & validate |
 | **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview |
+| **Color** | Convert hex / rgb / hsl / oklch / named via the browser's CSS parser. WCAG contrast ratio with AA / AAA pass-fail badges. |
+| **IP / Subnet** | IPv4 CIDR calculator: network, broadcast, mask, wildcard, hosts, address class, RFC1918 type, 32-bit binary view. |
+| **Cron** | Parse 5-field cron, plain-English description, expanded value sets, next 10 run times in your local timezone. |
 
-Phase 4 (next): HTTP Status, User Agent, Color, IP/Subnet, Cron — small reference modules to round out the set.
+**Reference**
+
+| Module | What it does |
+|---|---|
+| **HTTP Status** | Searchable reference for every HTTP status code (1xx–5xx, including WebDAV). |
+| **User Agent** | Your current `navigator.userAgent` parsed into browser/version/engine/OS/device, plus Client Hints when available. Paste any UA to parse. |
 
 ---
 

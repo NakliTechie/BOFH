@@ -593,8 +593,30 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   font-family: var(--sans);
 }
 .modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.modal-pane { display: none; }
-.modal-pane.active { display: block; }
+.modal > .modal-pane { display: none; }
+.modal > .modal-pane.active { display: block; }
+.modal-subtabs {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 12px;
+  overflow-x: auto;
+  border-bottom: 1px dashed var(--border);
+}
+.modal-subtabs::-webkit-scrollbar { display: none; }
+.modal-subtab {
+  background: transparent;
+  border: 0;
+  padding: 5px 9px;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 11.5px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  font-family: var(--sans);
+}
+.modal-subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.modal-subpane { display: none; }
+.modal-subpane.active { display: block; }
 
 /* ----- Toast ----- */
 #toast {
@@ -718,13 +740,81 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 <!-- Help modal -->
 <div class="modal-overlay" id="help-overlay">
   <div class="modal">
-    <h2>Help & shortcuts</h2>
+    <h2>Help</h2>
     <div class="modal-tabs" id="help-tabs">
-      <button class="modal-tab active" data-tab="general">General</button>
+      <button class="modal-tab active" data-tab="about">About</button>
       <button class="modal-tab" data-tab="modules">Modules</button>
+      <button class="modal-tab" data-tab="general">General</button>
       <button class="modal-tab" data-tab="privacy">Privacy</button>
     </div>
-    <div class="modal-pane active" data-pane="general">
+    <div class="modal-pane active" data-pane="about">
+      <h3>What is BOFH?</h3>
+      <p>BOFH is a browser-native developer toolkit. Twenty modules — JSON, JWT, regex, hashing, diffing, SQL, certificates, cron, and so on — packaged into a single HTML file that runs entirely in your browser. No server, no account, no telemetry, no third-party scripts beyond a handful of CDN libraries that load on demand.</p>
+      <h3>What does the name mean?</h3>
+      <p>BOFH stands for <strong>Bastard Operator From Hell</strong> — a fictional sysadmin from <a href="https://en.wikipedia.org/wiki/Bastard_Operator_from_Hell" target="_blank">Simon Travaglia's column</a> (running since 1992) who delights in tormenting users, vendors, and anyone else who threatens his network. Devs of a certain vintage will know him.</p>
+      <p>The connection: the average online dev tool — jwt.io, regex101, jsonformatter, base64encode — receives every keystroke you paste into it. Production tokens, API responses with PII, regex patterns mining your logs. <strong>BOFH is a bastard to anyone trying to exfiltrate your data,</strong> because the only place that data goes is into your own browser's memory and (optionally) <code>localStorage</code>.</p>
+      <h3>Stop pasting your secrets into the internet.</h3>
+      <p>That's the whole pitch.</p>
+      <h3>Part of a series</h3>
+      <p>BOFH is one of <a href="https://naklitechie.github.io/" target="_blank">a series of single-file, browser-native tools</a> built on the same philosophy: nothing leaves your device. Sister projects include BabelLocal (translation), VoiceVault (Whisper), VaultMind (Obsidian explorer), NakliPoster (API client), and KanZen (kanban).</p>
+    </div>
+    <div class="modal-pane" data-pane="modules">
+      <div class="modal-subtabs" id="help-subtabs">
+        <button class="modal-subtab active" data-subtab="cat-text">Text & Data</button>
+        <button class="modal-subtab" data-subtab="cat-crypto">Crypto & Security</button>
+        <button class="modal-subtab" data-subtab="cat-conv">Converters & Generators</button>
+        <button class="modal-subtab" data-subtab="cat-ref">Reference</button>
+      </div>
+      <div class="modal-subpane active" data-subpane="cat-text">
+        <h3>JSON</h3>
+        <p>Paste or drop JSON. Format, minify, validate, or browse as a collapsible tree. JSONPath (subset) supports <code>$</code>, dot/bracket paths, and array indices.</p>
+        <h3>YAML</h3>
+        <p>Two-pane YAML ↔ JSON converter using js-yaml (lazy-loaded from CDN on first open). Click either conversion button; both panes persist between sessions.</p>
+        <h3>Markdown</h3>
+        <p>Live Markdown preview (CommonMark + GFM tables / fenced code) using marked.js (lazy CDN). Source is on the left, rendered preview on the right. PDF/DOCX import is on the backlog.</p>
+        <h3>Diff</h3>
+        <p>Two textareas, line-level diff via LCS. When a deleted line is followed by an added line, an inline word-level diff highlights exactly what changed within the line. Pure JS, no CDN.</p>
+        <h3>CSV</h3>
+        <p>Drop a CSV/TSV file or paste rows. Get a sortable table (click headers), substring filter, regex find/replace across all cells, exact-row dedup, and CSV re-export. Loaded data is shared with the SQL tab via "Import from CSV tab". Uses Papa Parse from CDN.</p>
+        <h3>SQL</h3>
+        <p>Real SQLite in your browser via sql.js (~1MB WASM, lazy). Drop a CSV → BOFH infers column types (INTEGER/REAL/TEXT) and creates a table named after the file → write SQL → see results. Cmd/Ctrl+Enter runs the query. The database is in-memory only; nothing is persisted.</p>
+        <h3>Log Viewer</h3>
+        <p>Drop a log file or paste lines. Virtual scroll handles up to 500K lines without breaking a sweat. Type a regex in the search box for live highlighting; toggle "Only matches" to filter. Status bar shows total lines and match count.</p>
+      </div>
+      <div class="modal-subpane" data-subpane="cat-crypto">
+        <h3>JWT</h3>
+        <p>Decode any JWT. Verify HS256 by typing the secret. Verify RS256 by pasting the issuer's public key in PEM (<code>-----BEGIN PUBLIC KEY-----</code>). Expiry and "not before" are checked automatically.</p>
+        <h3>Hash</h3>
+        <p>SHA-1/256/384/512 and MD5 (legacy compat) for text or file input. HMAC-SHA-256/384/512 with a custom key. Output as hex, base64, or base64url. Compare against an expected hash for one-click integrity checks.</p>
+        <h3>Base64</h3>
+        <p>Text mode encodes UTF-8. File mode reads any file as bytes. URL-safe toggle uses <code>-_</code> instead of <code>+/</code> and strips padding.</p>
+        <h3>URL</h3>
+        <p>Three sub-tools in one. <strong>Encode/decode</strong> with a component (<code>encodeURIComponent</code>) vs whole-URL (<code>encodeURI</code>) toggle. <strong>Parse</strong> any URL into protocol, host, port, path, query, and hash, plus a per-query-param breakdown. <strong>Build</strong> a URL from a base + a list of key/value rows.</p>
+        <h3>Keys</h3>
+        <p>Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs entirely in your browser. Public key exports as SPKI PEM, private key as PKCS#8 PEM. Shows a SHA-256 SPKI fingerprint (the same one your TLS clients use). Paste any PEM <code>PUBLIC KEY</code> or <code>CERTIFICATE</code> to inspect — for X.509 certs you get subject, issuer, serial, validity dates, and the SPKI fingerprint, parsed via a tiny ASN.1 walker.</p>
+      </div>
+      <div class="modal-subpane" data-subpane="cat-conv">
+        <h3>Timestamp</h3>
+        <p>Detects seconds vs milliseconds. Shows ISO, local, and a relative ("3 days ago") form. Timezone selector uses your browser's IANA list.</p>
+        <h3>UUID</h3>
+        <p>v4 is fully random. v7 is time-ordered (UNIX-ms timestamp + random) and database-friendly. Bulk-generate up to 1000.</p>
+        <h3>Regex</h3>
+        <p>JavaScript regex with live match highlighting, capture-group inspection, all six flags (<code>g i m s u y</code>), a preset library (email, IPv4, UUID, ISO date, URL, hex color, phone), and a live replacement preview supporting <code>$1</code>/<code>$2</code> backreferences.</p>
+        <h3>Color</h3>
+        <p>Two color inputs side-by-side. Each parses any CSS color (hex, rgb, hsl, oklch, named) via the browser's own parser, shows the swatch, and emits hex/rgb/hsl/oklch versions. Click any output to copy. The bottom panel shows the WCAG contrast ratio between A and B with pass/fail badges for AA / AAA at normal and large text sizes.</p>
+        <h3>IP / Subnet</h3>
+        <p>IPv4 CIDR calculator. Enter <code>10.0.0.42/22</code> and get network, broadcast, first/last host, total addrs, usable hosts, subnet mask, wildcard mask, address class, RFC1918 classification, and 32-bit binary representation of IP, mask, and network. Click any value to copy.</p>
+        <h3>Cron</h3>
+        <p>Parses 5-field cron expressions (minute, hour, day-of-month, month, day-of-week). Shows a plain-English description of common patterns, expanded value sets per field, and the next 10 run times in your local timezone. Picks up the Vixie cron rule for combined day-of-month + day-of-week (OR semantics). Sample dropdown for common patterns.</p>
+      </div>
+      <div class="modal-subpane" data-subpane="cat-ref">
+        <h3>HTTP Status</h3>
+        <p>Searchable reference for every HTTP status code from 1xx through 5xx, including the WebDAV and CDN-flavored ones. Click any card to copy "<code>code name</code>" to the clipboard. Filter matches code, name, or description.</p>
+        <h3>User Agent</h3>
+        <p>Shows your current <code>navigator.userAgent</code> and parses it into browser, version, engine, OS, and device type. Paste any UA string to parse it. Modern browsers also expose structured data via <code>navigator.userAgentData</code> (Client Hints), shown when available.</p>
+      </div>
+    </div>
+    <div class="modal-pane" data-pane="general">
       <h3>Keyboard</h3>
       <ul>
         <li><code>/</code> — focus the module filter</li>
@@ -736,52 +826,10 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
       <h3>Linkable tabs</h3>
       <p>Each module has a hash URL (<code>#json</code>, <code>#jwt</code>, …) so you can bookmark or share a tab.</p>
     </div>
-    <div class="modal-pane" data-pane="modules">
-      <h3>JSON</h3>
-      <p>Paste or drop JSON. Format, minify, validate, or browse as a collapsible tree. JSONPath (subset) supports <code>$</code>, dot/bracket paths, and array indices.</p>
-      <h3>JWT</h3>
-      <p>Decode any JWT. Verify HS256 by typing the secret. Verify RS256 by pasting the issuer's public key in PEM (<code>-----BEGIN PUBLIC KEY-----</code>). Expiry and "not before" are checked automatically.</p>
-      <h3>Base64</h3>
-      <p>Text mode encodes UTF-8. File mode reads any file as bytes. URL-safe toggle uses <code>-_</code> instead of <code>+/</code> and strips padding.</p>
-      <h3>Timestamp</h3>
-      <p>Detects seconds vs milliseconds. Shows ISO, local, and a relative ("3 days ago") form. Timezone selector uses your browser's IANA list.</p>
-      <h3>UUID</h3>
-      <p>v4 is fully random. v7 is time-ordered (UNIX-ms timestamp + random) and database-friendly. Bulk-generate up to 1000.</p>
-      <h3>Hash</h3>
-      <p>SHA-1/256/384/512 and MD5 (legacy compat) for text or file input. HMAC-SHA-256/384/512 with a custom key. Output as hex, base64, or base64url. Compare against an expected hash for one-click integrity checks.</p>
-      <h3>URL</h3>
-      <p>Three sub-tools in one. <strong>Encode/decode</strong> with a component (<code>encodeURIComponent</code>) vs whole-URL (<code>encodeURI</code>) toggle. <strong>Parse</strong> any URL into protocol, host, port, path, query, and hash, plus a per-query-param breakdown. <strong>Build</strong> a URL from a base + a list of key/value rows.</p>
-      <h3>Regex</h3>
-      <p>JavaScript regex with live match highlighting, capture-group inspection, all six flags (<code>g i m s u y</code>), a preset library (email, IPv4, UUID, ISO date, URL, hex color, phone), and a live replacement preview supporting <code>$1</code>/<code>$2</code> backreferences.</p>
-      <h3>Keys</h3>
-      <p>Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs entirely in your browser. Public key exports as SPKI PEM, private key as PKCS#8 PEM. Shows a SHA-256 SPKI fingerprint (the same one your TLS clients use). Paste any PEM <code>PUBLIC KEY</code> or <code>CERTIFICATE</code> to inspect — for X.509 certs you get subject, issuer, serial, validity dates, and the SPKI fingerprint, parsed via a tiny ASN.1 walker.</p>
-      <h3>Diff</h3>
-      <p>Two textareas, line-level diff via LCS. When a deleted line is followed by an added line, an inline word-level diff highlights exactly what changed within the line. Pure JS, no CDN.</p>
-      <h3>YAML</h3>
-      <p>Two-pane YAML ↔ JSON converter using js-yaml (lazy-loaded from CDN on first open). Click either conversion button; both panes persist between sessions.</p>
-      <h3>Markdown</h3>
-      <p>Live Markdown preview (CommonMark + GFM tables / fenced code) using marked.js (lazy CDN). Source is on the left, rendered preview on the right. PDF/DOCX import is on the backlog.</p>
-      <h3>CSV</h3>
-      <p>Drop a CSV/TSV file or paste rows. Get a sortable table (click headers), substring filter, regex find/replace across all cells, exact-row dedup, and CSV re-export. Loaded data is shared with the SQL tab via "Import from CSV tab". Uses Papa Parse from CDN.</p>
-      <h3>SQL</h3>
-      <p>Real SQLite in your browser via sql.js (~1MB WASM, lazy). Drop a CSV → BOFH infers column types (INTEGER/REAL/TEXT) and creates a table named after the file → write SQL → see results. Cmd/Ctrl+Enter runs the query. The database is in-memory only; nothing is persisted.</p>
-      <h3>Log Viewer</h3>
-      <p>Drop a log file or paste lines. Virtual scroll handles up to 500K lines without breaking a sweat. Type a regex in the search box for live highlighting; toggle "Only matches" to filter. Status bar shows total lines and match count.</p>
-      <h3>HTTP Status</h3>
-      <p>Searchable reference for every HTTP status code from 1xx through 5xx, including the WebDAV and CDN-flavored ones. Click any card to copy "<code>code name</code>" to the clipboard. Filter matches code, name, or description.</p>
-      <h3>User Agent</h3>
-      <p>Shows your current <code>navigator.userAgent</code> and parses it into browser, version, engine, OS, and device type. Paste any UA string to parse it. Modern browsers also expose structured data via <code>navigator.userAgentData</code> (Client Hints), shown when available.</p>
-      <h3>Color</h3>
-      <p>Two color inputs side-by-side. Each parses any CSS color (hex, rgb, hsl, oklch, named) via the browser's own parser, shows the swatch, and emits hex/rgb/hsl/oklch versions. Click any output to copy. The bottom panel shows the WCAG contrast ratio between A and B with pass/fail badges for AA / AAA at normal and large text sizes.</p>
-      <h3>IP / Subnet</h3>
-      <p>IPv4 CIDR calculator. Enter <code>10.0.0.42/22</code> and get network, broadcast, first/last host, total addrs, usable hosts, subnet mask, wildcard mask, address class, RFC1918 classification, and 32-bit binary representation of IP, mask, and network. Click any value to copy.</p>
-      <h3>Cron</h3>
-      <p>Parses 5-field cron expressions (minute, hour, day-of-month, month, day-of-week). Shows a plain-English description of common patterns, expanded value sets per field, and the next 10 run times in your local timezone. Picks up the Vixie cron rule for combined day-of-month + day-of-week (OR semantics). Sample dropdown for common patterns.</p>
-    </div>
     <div class="modal-pane" data-pane="privacy">
-      <p>BOFH is a single HTML file. There is no server, no analytics, no fonts loaded from a CDN, no third-party scripts (Phase 1).</p>
-      <p>Your inputs are stored only in your own browser's <code>localStorage</code>. Clear it with the <code>⌫</code> button or your browser's site-data settings.</p>
-      <p>The JWT verifier uses the browser's built-in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank">Web Crypto API</a> — the same primitives your OS uses.</p>
+      <p>BOFH is a single HTML file. There is no server, no analytics, no telemetry, no fonts loaded from a CDN. The only network traffic is the one-time on-demand fetch of a small set of CDN libraries (js-yaml, marked, Papa Parse, sql.js) when you first open one of the heavy modules — the URLs are all <code>cdn.jsdelivr.net</code> and the scripts run sandboxed in the page like any other library.</p>
+      <p>Your inputs are stored only in your own browser's <code>localStorage</code>, namespaced under <code>bofh:</code>. Clear them with the <code>⌫</code> button in the sidebar foot, or with your browser's site-data settings.</p>
+      <p>The JWT verifier, Hash module, and Keys module all use the browser's built-in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank">Web Crypto API</a> — the same primitives your OS uses for TLS.</p>
     </div>
     <div class="modal-foot">
       <button class="btn btn-primary" onclick="closeHelp()">Close</button>
@@ -3660,13 +3708,22 @@ function init() {
       location.reload();
     }
   };
-  // Help modal tabs
+  // Help modal tabs (top-level — only direct children of .modal)
   document.querySelectorAll('#help-tabs .modal-tab').forEach(t => {
     t.onclick = () => {
       document.querySelectorAll('#help-tabs .modal-tab').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll('#help-overlay .modal-pane').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('#help-overlay .modal > .modal-pane').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
-      document.querySelector(`#help-overlay .modal-pane[data-pane="${t.getAttribute('data-tab')}"]`).classList.add('active');
+      document.querySelector(`#help-overlay .modal > .modal-pane[data-pane="${t.getAttribute('data-tab')}"]`).classList.add('active');
+    };
+  });
+  // Help modal sub-tabs (Modules pane)
+  document.querySelectorAll('#help-subtabs .modal-subtab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('#help-subtabs .modal-subtab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('#help-overlay .modal-subpane').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelector(`#help-overlay .modal-subpane[data-subpane="${t.getAttribute('data-subtab')}"]`).classList.add('active');
     };
   });
   // Modal backdrop close

@@ -20,17 +20,23 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 
 ---
 
-## What's in it (Phase 1)
+## What's in it (Phases 1 + 2)
 
 | Module | What it does |
 |---|---|
 | **JSON** | Format, validate, minify, collapsible tree view, JSONPath query |
 | **JWT** | Decode header/payload, verify HS256/384/512 and RS256/384/512, expiry & nbf checks, claim highlights |
+| **Hash** | SHA-1/256/384/512 + MD5 + HMAC. Text or file. Hex / base64 / base64url. Compare against expected. |
 | **Base64** | Encode/decode text and files, URL-safe variant |
+| **URL** | Encode/decode (component or whole-URL), parse into components + query params, build from base + kv pairs |
+| **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview |
+| **Keys** | Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs → SPKI/PKCS#8 PEM. Decode PEM public keys and X.509 certificates (subject, issuer, validity, SPKI fingerprint). |
 | **Timestamp** | Unix epoch ↔ human, timezone-aware (`Intl`), relative time |
 | **UUID** | Generate v4 (random) and v7 (time-ordered, database-friendly), bulk, parse & validate |
 
-Phase 2 (next): YAML, CSV, SQL, Diff, Hash, URL, Regex, Keys, Markdown, Log Viewer, HTTP Status, User Agent, Color, IP/Subnet, Cron.
+Phase 3 (next): CSV, SQL, YAML, Diff, Markdown, Log Viewer.
+
+Phase 4: HTTP Status, User Agent, Color, IP/Subnet, Cron.
 
 ---
 

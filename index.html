@@ -496,9 +496,10 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
     <ul>
       <li><strong>JSON</strong> — format, validate, tree-view, JSONPath</li>
       <li><strong>JWT</strong> — decode header/payload, verify HS256/RS256, check expiry</li>
-      <li><strong>Base64</strong> — encode/decode text and files, URL-safe variant</li>
-      <li><strong>Timestamp</strong> — Unix epoch ↔ human, timezone-aware, relative</li>
-      <li><strong>UUID</strong> — generate v4 / v7, bulk, validate</li>
+      <li><strong>Hash</strong> — SHA family + MD5 + HMAC, text or file</li>
+      <li><strong>Base64 / URL / Regex</strong> — the usual encode/decode/match suspects</li>
+      <li><strong>Keys</strong> — generate RSA/EC keypairs, decode PEM certificates</li>
+      <li><strong>Timestamp / UUID</strong> — epoch ↔ human, v4 + v7 generation</li>
     </ul>
     <p style="font-size:12.5px;">More modules coming. Every transformation runs locally — no servers, no telemetry, no random S3 buckets seeing your tokens.</p>
     <div class="modal-foot">
@@ -540,6 +541,14 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
       <p>Detects seconds vs milliseconds. Shows ISO, local, and a relative ("3 days ago") form. Timezone selector uses your browser's IANA list.</p>
       <h3>UUID</h3>
       <p>v4 is fully random. v7 is time-ordered (UNIX-ms timestamp + random) and database-friendly. Bulk-generate up to 1000.</p>
+      <h3>Hash</h3>
+      <p>SHA-1/256/384/512 and MD5 (legacy compat) for text or file input. HMAC-SHA-256/384/512 with a custom key. Output as hex, base64, or base64url. Compare against an expected hash for one-click integrity checks.</p>
+      <h3>URL</h3>
+      <p>Three sub-tools in one. <strong>Encode/decode</strong> with a component (<code>encodeURIComponent</code>) vs whole-URL (<code>encodeURI</code>) toggle. <strong>Parse</strong> any URL into protocol, host, port, path, query, and hash, plus a per-query-param breakdown. <strong>Build</strong> a URL from a base + a list of key/value rows.</p>
+      <h3>Regex</h3>
+      <p>JavaScript regex with live match highlighting, capture-group inspection, all six flags (<code>g i m s u y</code>), a preset library (email, IPv4, UUID, ISO date, URL, hex color, phone), and a live replacement preview supporting <code>$1</code>/<code>$2</code> backreferences.</p>
+      <h3>Keys</h3>
+      <p>Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs entirely in your browser. Public key exports as SPKI PEM, private key as PKCS#8 PEM. Shows a SHA-256 SPKI fingerprint (the same one your TLS clients use). Paste any PEM <code>PUBLIC KEY</code> or <code>CERTIFICATE</code> to inspect — for X.509 certs you get subject, issuer, serial, validity dates, and the SPKI fingerprint, parsed via a tiny ASN.1 walker.</p>
     </div>
     <div class="modal-pane" data-pane="privacy">
       <p>BOFH is a single HTML file. There is no server, no analytics, no fonts loaded from a CDN, no third-party scripts (Phase 1).</p>
@@ -1279,6 +1288,749 @@ MODULES.push({
     generate();
   }
 });
+
+/* ============================================================
+   PHASE 2 — Hash, URL, Regex, Keys
+   ============================================================ */
+
+/* ---------- shared crypto helpers ---------- */
+function bytesToHex(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0');
+  return s;
+}
+function bytesToB64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function bytesToB64url(bytes) {
+  return bytesToB64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/* MD5 — pure JS, public domain (Joseph Myers, blueimp variant). ~80 lines.
+   Returns hex string. Used only for legacy compat (file integrity, etc). */
+function md5(str) {
+  function safeAdd(x, y) { const lsw = (x & 0xffff) + (y & 0xffff); const msw = (x >> 16) + (y >> 16) + (lsw >> 16); return (msw << 16) | (lsw & 0xffff); }
+  function bitRol(num, cnt) { return (num << cnt) | (num >>> (32 - cnt)); }
+  function md5cmn(q, a, b, x, s, t) { return safeAdd(bitRol(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b); }
+  function md5ff(a, b, c, d, x, s, t) { return md5cmn((b & c) | ((~b) & d), a, b, x, s, t); }
+  function md5gg(a, b, c, d, x, s, t) { return md5cmn((b & d) | (c & (~d)), a, b, x, s, t); }
+  function md5hh(a, b, c, d, x, s, t) { return md5cmn(b ^ c ^ d, a, b, x, s, t); }
+  function md5ii(a, b, c, d, x, s, t) { return md5cmn(c ^ (b | (~d)), a, b, x, s, t); }
+  function binlMD5(x, len) {
+    x[len >> 5] |= 0x80 << (len % 32);
+    x[(((len + 64) >>> 9) << 4) + 14] = len;
+    let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+    for (let i = 0; i < x.length; i += 16) {
+      const olda = a, oldb = b, oldc = c, oldd = d;
+      a = md5ff(a, b, c, d, x[i],     7,  -680876936); d = md5ff(d, a, b, c, x[i+1], 12, -389564586); c = md5ff(c, d, a, b, x[i+2], 17,  606105819); b = md5ff(b, c, d, a, x[i+3], 22, -1044525330);
+      a = md5ff(a, b, c, d, x[i+4],   7,  -176418897); d = md5ff(d, a, b, c, x[i+5], 12,  1200080426); c = md5ff(c, d, a, b, x[i+6], 17, -1473231341); b = md5ff(b, c, d, a, x[i+7], 22,  -45705983);
+      a = md5ff(a, b, c, d, x[i+8],   7,  1770035416); d = md5ff(d, a, b, c, x[i+9], 12, -1958414417); c = md5ff(c, d, a, b, x[i+10],17,    -42063); b = md5ff(b, c, d, a, x[i+11],22, -1990404162);
+      a = md5ff(a, b, c, d, x[i+12],  7,  1804603682); d = md5ff(d, a, b, c, x[i+13],12,   -40341101); c = md5ff(c, d, a, b, x[i+14],17, -1502002290); b = md5ff(b, c, d, a, x[i+15],22,  1236535329);
+      a = md5gg(a, b, c, d, x[i+1],   5,  -165796510); d = md5gg(d, a, b, c, x[i+6], 9,  -1069501632); c = md5gg(c, d, a, b, x[i+11],14,   643717713); b = md5gg(b, c, d, a, x[i],    20,  -373897302);
+      a = md5gg(a, b, c, d, x[i+5],   5,  -701558691); d = md5gg(d, a, b, c, x[i+10],9,    38016083); c = md5gg(c, d, a, b, x[i+15],14,  -660478335); b = md5gg(b, c, d, a, x[i+4],  20,  -405537848);
+      a = md5gg(a, b, c, d, x[i+9],   5,   568446438); d = md5gg(d, a, b, c, x[i+14],9,  -1019803690); c = md5gg(c, d, a, b, x[i+3], 14,  -187363961); b = md5gg(b, c, d, a, x[i+8],  20,  1163531501);
+      a = md5gg(a, b, c, d, x[i+13],  5, -1444681467); d = md5gg(d, a, b, c, x[i+2], 9,   -51403784); c = md5gg(c, d, a, b, x[i+7], 14,  1735328473); b = md5gg(b, c, d, a, x[i+12], 20, -1926607734);
+      a = md5hh(a, b, c, d, x[i+5],   4,    -378558); d = md5hh(d, a, b, c, x[i+8], 11, -2022574463); c = md5hh(c, d, a, b, x[i+11],16,  1839030562); b = md5hh(b, c, d, a, x[i+14], 23,   -35309556);
+      a = md5hh(a, b, c, d, x[i+1],   4, -1530992060); d = md5hh(d, a, b, c, x[i+4], 11,  1272893353); c = md5hh(c, d, a, b, x[i+7], 16,  -155497632); b = md5hh(b, c, d, a, x[i+10], 23, -1094730640);
+      a = md5hh(a, b, c, d, x[i+13],  4,   681279174); d = md5hh(d, a, b, c, x[i],   11,  -358537222); c = md5hh(c, d, a, b, x[i+3], 16,  -722521979); b = md5hh(b, c, d, a, x[i+6],  23,    76029189);
+      a = md5hh(a, b, c, d, x[i+9],   4, -640364487);  d = md5hh(d, a, b, c, x[i+12],11,  -421815835); c = md5hh(c, d, a, b, x[i+15],16,   530742520); b = md5hh(b, c, d, a, x[i+2],  23,  -995338651);
+      a = md5ii(a, b, c, d, x[i],     6,  -198630844); d = md5ii(d, a, b, c, x[i+7], 10,  1126891415); c = md5ii(c, d, a, b, x[i+14],15, -1416354905); b = md5ii(b, c, d, a, x[i+5],  21,   -57434055);
+      a = md5ii(a, b, c, d, x[i+12],  6,  1700485571); d = md5ii(d, a, b, c, x[i+3], 10, -1894986606); c = md5ii(c, d, a, b, x[i+10],15,    -1051523); b = md5ii(b, c, d, a, x[i+1],  21, -2054922799);
+      a = md5ii(a, b, c, d, x[i+8],   6,  1873313359); d = md5ii(d, a, b, c, x[i+15],10,   -30611744); c = md5ii(c, d, a, b, x[i+6], 15, -1560198380); b = md5ii(b, c, d, a, x[i+13], 21,  1309151649);
+      a = md5ii(a, b, c, d, x[i+4],   6,  -145523070); d = md5ii(d, a, b, c, x[i+11],10, -1120210379); c = md5ii(c, d, a, b, x[i+2], 15,   718787259); b = md5ii(b, c, d, a, x[i+9],  21,  -343485551);
+      a = safeAdd(a, olda); b = safeAdd(b, oldb); c = safeAdd(c, oldc); d = safeAdd(d, oldd);
+    }
+    return [a, b, c, d];
+  }
+  function bytes2binl(bytes) {
+    const bin = []; for (let i = 0; i < bytes.length * 8; i += 8) bin[i >> 5] |= bytes[i / 8] << (i % 32);
+    return bin;
+  }
+  function binl2hex(binarray) {
+    const hex = '0123456789abcdef'; let str = '';
+    for (let i = 0; i < binarray.length * 4; i++) {
+      str += hex.charAt((binarray[i >> 2] >> ((i % 4) * 8 + 4)) & 0x0f) +
+             hex.charAt((binarray[i >> 2] >> ((i % 4) * 8))     & 0x0f);
+    }
+    return str;
+  }
+  const bytes = str instanceof Uint8Array ? str : new TextEncoder().encode(str);
+  return binl2hex(binlMD5(bytes2binl(bytes), bytes.length * 8));
+}
+
+/* ---------- Hash ---------- */
+MODULES.push({
+  id: 'hash',
+  name: 'Hash',
+  icon: '#',
+  category: 'Crypto & Security',
+  desc: 'SHA, MD5, and HMAC. Text or file. Runs in your browser.',
+  init(c) {
+    c.innerHTML = '';
+    const algSel = el('select');
+    ['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512',
+     'HMAC-SHA-256', 'HMAC-SHA-384', 'HMAC-SHA-512'].forEach(a => algSel.appendChild(el('option', { value: a }, a)));
+    algSel.value = store.get('hash:alg', 'SHA-256');
+    const fmtSel = el('select');
+    ['hex', 'base64', 'base64url'].forEach(f => fmtSel.appendChild(el('option', { value: f }, f)));
+    fmtSel.value = store.get('hash:fmt', 'hex');
+    const text = el('textarea', { spellcheck: 'false', placeholder: 'Text…' });
+    text.value = store.get('hash:text', '');
+    const hmacKey = el('input', { type: 'text', placeholder: 'HMAC key (only for HMAC-* algorithms)' });
+    hmacKey.value = store.get('hash:hmackey', '');
+    const fileInput = el('input', { type: 'file' });
+    const out = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+    const expected = el('input', { type: 'text', placeholder: 'Expected hash (compare)' });
+    const cmpStatus = el('div', { class: 'status' });
+
+    function fmtBytes(bytes) {
+      const f = fmtSel.value;
+      if (f === 'hex') return bytesToHex(bytes);
+      if (f === 'base64') return bytesToB64(bytes);
+      return bytesToB64url(bytes);
+    }
+    function timingSafeEqual(a, b) {
+      if (a.length !== b.length) return false;
+      let r = 0;
+      for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return r === 0;
+    }
+    async function hashBytes(bytes) {
+      const alg = algSel.value;
+      if (alg === 'MD5') {
+        return new Uint8Array((md5(bytes).match(/.{2}/g) || []).map(b => parseInt(b, 16)));
+      }
+      if (alg.startsWith('HMAC-')) {
+        const hash = alg.replace('HMAC-', '');
+        if (!hmacKey.value) throw new Error('HMAC requires a key');
+        const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(hmacKey.value),
+          { name: 'HMAC', hash }, false, ['sign']);
+        const sig = await crypto.subtle.sign('HMAC', key, bytes);
+        return new Uint8Array(sig);
+      }
+      const buf = await crypto.subtle.digest(alg, bytes);
+      return new Uint8Array(buf);
+    }
+    async function runText() {
+      try {
+        const bytes = new TextEncoder().encode(text.value);
+        const h = await hashBytes(bytes);
+        const s = fmtBytes(h);
+        out.textContent = s;
+        status.textContent = '✓ ' + algSel.value + ' · ' + bytes.length + ' bytes in';
+        status.className = 'status ok';
+        runCompare(s);
+      } catch (e) { out.textContent = ''; status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    async function runFile(f) {
+      try {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        const h = await hashBytes(bytes);
+        const s = fmtBytes(h);
+        out.textContent = s;
+        status.textContent = '✓ ' + algSel.value + ' · ' + f.name + ' · ' + bytes.length + ' bytes';
+        status.className = 'status ok';
+        runCompare(s);
+      } catch (e) { out.textContent = ''; status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    function runCompare(actual) {
+      const e = expected.value.trim();
+      if (!e) { cmpStatus.textContent = ''; return; }
+      // case-insensitive for hex
+      const a = fmtSel.value === 'hex' ? actual.toLowerCase() : actual;
+      const b = fmtSel.value === 'hex' ? e.toLowerCase() : e;
+      const ok = timingSafeEqual(a, b);
+      cmpStatus.textContent = ok ? '✓ matches expected' : '✗ does NOT match expected';
+      cmpStatus.className = 'status ' + (ok ? 'ok' : 'err');
+    }
+
+    text.addEventListener('input', () => { store.set('hash:text', text.value); runText(); });
+    hmacKey.addEventListener('input', () => { store.set('hash:hmackey', hmacKey.value); runText(); });
+    algSel.onchange = () => { store.set('hash:alg', algSel.value); runText(); };
+    fmtSel.onchange = () => { store.set('hash:fmt', fmtSel.value); runText(); };
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) runFile(fileInput.files[0]); });
+    expected.addEventListener('input', () => runCompare(out.textContent));
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Algorithm'), algSel,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Output'), fmtSel,
+        el('button', { class: 'btn', onclick: () => copy(out.textContent) }, 'Copy'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Text input'),
+      text,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'HMAC key'),
+      hmacKey,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Or hash a file'),
+      fileInput,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Output'),
+      out,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Compare against expected'),
+      expected, cmpStatus
+    ));
+    if (text.value) runText();
+  }
+});
+
+/* ---------- URL ---------- */
+MODULES.push({
+  id: 'url',
+  name: 'URL',
+  icon: '~',
+  category: 'Crypto & Security',
+  desc: 'Encode, decode, parse, and build URLs.',
+  init(c) {
+    c.innerHTML = '';
+    /* encode/decode pane */
+    const text = el('textarea', { spellcheck: 'false', placeholder: 'Text or URL…', style: 'min-height:100px' });
+    text.value = store.get('url:text', '');
+    const componentMode = el('input', { type: 'checkbox' });
+    if (store.get('url:component', '1') === '1') componentMode.checked = true;
+    const out = el('textarea', { spellcheck: 'false', placeholder: 'Output…', style: 'min-height:100px' });
+
+    function encode() {
+      try {
+        out.value = componentMode.checked ? encodeURIComponent(text.value) : encodeURI(text.value);
+      } catch (e) { out.value = '✗ ' + e.message; }
+    }
+    function decode() {
+      try {
+        out.value = componentMode.checked ? decodeURIComponent(text.value) : decodeURI(text.value);
+      } catch (e) { out.value = '✗ ' + e.message; }
+    }
+    text.addEventListener('input', () => store.set('url:text', text.value));
+    componentMode.addEventListener('change', () => store.set('url:component', componentMode.checked ? '1' : '0'));
+
+    /* parser pane */
+    const parseInput = el('input', { type: 'text', placeholder: 'https://user:pass@example.com:8080/path/to/page?q=hello&n=42#frag' });
+    parseInput.value = store.get('url:parse', '');
+    const parseOut = el('div', { class: 'kv' });
+    const queryOut = el('div', { class: 'kv' });
+    function parseURL() {
+      parseOut.innerHTML = '';
+      queryOut.innerHTML = '';
+      const v = parseInput.value.trim();
+      if (!v) return;
+      try {
+        const u = new URL(v);
+        const rows = [
+          ['protocol', u.protocol], ['username', u.username || '(none)'], ['password', u.password ? '••• ('+u.password.length+' chars)' : '(none)'],
+          ['host', u.host], ['hostname', u.hostname], ['port', u.port || '(default)'],
+          ['pathname', u.pathname], ['search', u.search || '(none)'], ['hash', u.hash || '(none)'],
+          ['origin', u.origin]
+        ];
+        rows.forEach(([k, vv]) => {
+          parseOut.appendChild(el('div', { class: 'k' }, k));
+          const vd = el('div', { class: 'v' }, String(vv));
+          vd.style.cursor = 'pointer'; vd.title = 'Click to copy';
+          vd.onclick = () => copy(String(vv));
+          parseOut.appendChild(vd);
+        });
+        u.searchParams.forEach((val, key) => {
+          queryOut.appendChild(el('div', { class: 'k' }, key));
+          const vd = el('div', { class: 'v' }, val);
+          vd.style.cursor = 'pointer'; vd.onclick = () => copy(val);
+          queryOut.appendChild(vd);
+        });
+        store.set('url:parse', v);
+      } catch (e) {
+        parseOut.appendChild(el('div', { class: 'k' }, 'error'));
+        parseOut.appendChild(el('div', { class: 'v err' }, e.message));
+      }
+    }
+    parseInput.addEventListener('input', parseURL);
+
+    /* builder pane */
+    const baseInput = el('input', { type: 'text', placeholder: 'https://api.example.com/v1/search' });
+    baseInput.value = store.get('url:base', '');
+    const paramsBox = el('div', { style: 'display:flex;flex-direction:column;gap:4px' });
+    const builtOut = el('input', { type: 'text', placeholder: 'Built URL appears here' });
+    let params = store.getJSON('url:params', [{ k: '', v: '' }]);
+
+    function renderParams() {
+      paramsBox.innerHTML = '';
+      params.forEach((p, i) => {
+        const row = el('div', { class: 'btn-row' });
+        const k = el('input', { type: 'text', placeholder: 'key', style: 'max-width:160px' });
+        k.value = p.k;
+        const v = el('input', { type: 'text', placeholder: 'value', style: 'flex:1' });
+        v.value = p.v;
+        const rm = el('button', { class: 'btn' }, '×');
+        k.oninput = () => { params[i].k = k.value; build(); };
+        v.oninput = () => { params[i].v = v.value; build(); };
+        rm.onclick = () => { params.splice(i, 1); if (!params.length) params.push({k:'',v:''}); renderParams(); build(); };
+        row.appendChild(k); row.appendChild(v); row.appendChild(rm);
+        paramsBox.appendChild(row);
+      });
+    }
+    function build() {
+      try {
+        const base = baseInput.value.trim();
+        if (!base) { builtOut.value = ''; return; }
+        const u = new URL(base);
+        // clear existing params
+        [...u.searchParams.keys()].forEach(k => u.searchParams.delete(k));
+        params.forEach(p => { if (p.k) u.searchParams.append(p.k, p.v); });
+        builtOut.value = u.toString();
+        store.set('url:base', base);
+        store.setJSON('url:params', params);
+      } catch (e) { builtOut.value = '✗ ' + e.message; }
+    }
+    baseInput.addEventListener('input', build);
+    const addBtn = el('button', { class: 'btn', onclick: () => { params.push({k:'',v:''}); renderParams(); } }, '+ param');
+    const copyBuilt = el('button', { class: 'btn', onclick: () => copy(builtOut.value) }, 'Copy');
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Encode / decode'),
+      text,
+      el('div', { class: 'btn-row' },
+        el('button', { class: 'btn btn-primary', onclick: encode }, 'Encode ↓'),
+        el('button', { class: 'btn', onclick: decode }, 'Decode ↑'),
+        el('button', { class: 'btn', onclick: () => copy(out.value) }, 'Copy'),
+        el('label', { style: 'display:flex;align-items:center;gap:5px;margin-left:8px;font-size:12px;color:var(--text-dim)' }, componentMode, 'Component (vs full URL)')
+      ),
+      out,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'Parse a URL'),
+      parseInput,
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Components'),
+      parseOut,
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Query parameters'),
+      queryOut,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'Build a URL'),
+      baseInput,
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Query parameters'),
+      paramsBox,
+      el('div', { class: 'btn-row' }, addBtn, el('span', { class: 'spacer' })),
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Built URL'),
+      el('div', { class: 'btn-row' }, builtOut, copyBuilt)
+    ));
+    renderParams();
+    build();
+    if (parseInput.value) parseURL();
+  }
+});
+
+/* ---------- Regex ---------- */
+const REGEX_PRESETS = {
+  'Email': '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}',
+  'IPv4': '\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b',
+  'UUID': '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+  'ISO date': '\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:?\\d{2})?)?',
+  'URL': 'https?://[^\\s<>"\']+',
+  'Hex color': '#(?:[0-9a-fA-F]{3}){1,2}\\b',
+  'Phone (intl)': '\\+\\d{1,3}[\\s-]?\\(?\\d{1,4}\\)?[\\s-]?\\d{1,4}[\\s-]?\\d{1,9}',
+};
+
+MODULES.push({
+  id: 'regex',
+  name: 'Regex',
+  icon: '/',
+  category: 'Converters & Generators',
+  desc: 'Test regular expressions with live highlighting and capture groups.',
+  init(c) {
+    c.innerHTML = '';
+    const pattern = el('input', { type: 'text', placeholder: 'Pattern (no slashes)' });
+    pattern.value = store.get('regex:pattern', '\\b(\\w+)@(\\w+\\.\\w+)\\b');
+    const flagsBox = el('div', { class: 'btn-row' });
+    const flagsState = store.get('regex:flags', 'gi');
+    const flagInputs = {};
+    'gimsuy'.split('').forEach(f => {
+      const cb = el('input', { type: 'checkbox' });
+      if (flagsState.includes(f)) cb.checked = true;
+      flagInputs[f] = cb;
+      const lbl = el('label', { style: 'display:flex;align-items:center;gap:3px;font-family:var(--mono);font-size:12px;color:var(--text-dim)' }, cb, f);
+      flagsBox.appendChild(lbl);
+    });
+    const presetSel = el('select');
+    presetSel.appendChild(el('option', { value: '' }, '— preset —'));
+    Object.keys(REGEX_PRESETS).forEach(p => presetSel.appendChild(el('option', { value: p }, p)));
+    presetSel.onchange = () => {
+      if (presetSel.value) {
+        pattern.value = REGEX_PRESETS[presetSel.value];
+        store.set('regex:pattern', pattern.value);
+        run();
+      }
+    };
+
+    const sample = el('textarea', { spellcheck: 'false', placeholder: 'Sample text…' });
+    sample.value = store.get('regex:sample', 'Contact alice@example.com or bob@test.org for more info.\nAnother line: charlie@nowhere.io');
+
+    const highlightOut = el('div', { class: 'pre-out' });
+    const matchTable = el('div', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+
+    /* replace pane */
+    const replaceInput = el('input', { type: 'text', placeholder: 'Replacement (use $1, $2 for groups)' });
+    replaceInput.value = store.get('regex:replace', '<$1 at $2>');
+    const replaceOut = el('pre', { class: 'pre-out' });
+
+    function getFlags() {
+      let f = '';
+      'gimsuy'.split('').forEach(k => { if (flagInputs[k].checked) f += k; });
+      store.set('regex:flags', f);
+      return f;
+    }
+    function run() {
+      const p = pattern.value;
+      const f = getFlags();
+      highlightOut.innerHTML = '';
+      matchTable.innerHTML = '';
+      replaceOut.textContent = '';
+      if (!p) { status.textContent = ''; return; }
+      let re;
+      try { re = new RegExp(p, f); }
+      catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; return; }
+
+      // highlight
+      const text = sample.value;
+      const matches = [];
+      let m;
+      const globalRe = new RegExp(p, f.includes('g') ? f : f + 'g');
+      while ((m = globalRe.exec(text)) !== null) {
+        matches.push({ index: m.index, full: m[0], groups: m.slice(1) });
+        if (m[0].length === 0) globalRe.lastIndex++;
+        if (matches.length > 5000) break;
+      }
+      // build highlighted html
+      let last = 0;
+      const frag = document.createDocumentFragment();
+      matches.forEach(mm => {
+        if (mm.index > last) frag.appendChild(document.createTextNode(text.slice(last, mm.index)));
+        const mark = el('span', { style: 'background:rgba(255,122,69,0.35);color:var(--text);border-radius:2px;padding:0 1px' }, mm.full || '∅');
+        frag.appendChild(mark);
+        last = mm.index + mm.full.length;
+      });
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      highlightOut.appendChild(frag);
+
+      // match table
+      if (matches.length === 0) {
+        matchTable.textContent = '(no matches)';
+      } else {
+        matches.slice(0, 200).forEach((mm, i) => {
+          const line = el('div', {});
+          line.appendChild(el('span', { style: 'color:var(--text-faint)' }, '#' + (i+1) + ' @' + mm.index + ' '));
+          line.appendChild(el('span', { style: 'color:var(--accent)' }, JSON.stringify(mm.full)));
+          if (mm.groups.length) {
+            line.appendChild(el('span', { style: 'color:var(--text-faint)' }, '  groups: '));
+            mm.groups.forEach((g, gi) => {
+              if (gi > 0) line.appendChild(document.createTextNode(', '));
+              line.appendChild(el('span', { style: 'color:#a7e3a0' }, JSON.stringify(g)));
+            });
+          }
+          matchTable.appendChild(line);
+        });
+        if (matches.length > 200) matchTable.appendChild(el('div', { style: 'color:var(--text-faint);margin-top:4px' }, '… and ' + (matches.length - 200) + ' more'));
+      }
+      status.textContent = '✓ ' + matches.length + ' match' + (matches.length === 1 ? '' : 'es');
+      status.className = 'status ok';
+
+      // replace
+      try {
+        const replaceRe = new RegExp(p, f.includes('g') ? f : f + 'g');
+        replaceOut.textContent = text.replace(replaceRe, replaceInput.value);
+      } catch (e) { replaceOut.textContent = '✗ ' + e.message; }
+    }
+    pattern.addEventListener('input', () => { store.set('regex:pattern', pattern.value); run(); });
+    sample.addEventListener('input', () => { store.set('regex:sample', sample.value); run(); });
+    replaceInput.addEventListener('input', () => { store.set('regex:replace', replaceInput.value); run(); });
+    Object.values(flagInputs).forEach(cb => cb.addEventListener('change', run));
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Pattern'), pattern,
+      ),
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Flags'), flagsBox,
+        el('span', { class: 'spacer' }), presetSel, status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Sample text'),
+      sample,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Highlighted'),
+      highlightOut,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Matches'),
+      matchTable,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'Replace (live preview)'),
+      replaceInput,
+      replaceOut
+    ));
+    run();
+  }
+});
+
+/* ---------- Keys ---------- */
+/* Minimal ASN.1 DER parser — only what we need to walk an X.509 cert. */
+function asn1Parse(bytes, offset = 0) {
+  const tag = bytes[offset];
+  let len = bytes[offset + 1];
+  let lenOff = offset + 2;
+  if (len & 0x80) {
+    const lenBytes = len & 0x7f;
+    len = 0;
+    for (let i = 0; i < lenBytes; i++) len = (len << 8) | bytes[lenOff + i];
+    lenOff += lenBytes;
+  }
+  return { tag, length: len, contentStart: lenOff, contentEnd: lenOff + len, totalEnd: lenOff + len };
+}
+function asn1Children(bytes, parent) {
+  const children = [];
+  let i = parent.contentStart;
+  while (i < parent.contentEnd) {
+    const child = asn1Parse(bytes, i);
+    children.push(child);
+    i = child.totalEnd;
+  }
+  return children;
+}
+const ASN1_OID_NAMES = {
+  '2.5.4.3': 'CN', '2.5.4.6': 'C', '2.5.4.7': 'L', '2.5.4.8': 'ST',
+  '2.5.4.10': 'O', '2.5.4.11': 'OU', '1.2.840.113549.1.9.1': 'emailAddress',
+};
+function decodeOID(bytes, start, end) {
+  const result = [];
+  let i = start;
+  result.push(Math.floor(bytes[i] / 40));
+  result.push(bytes[i] % 40);
+  i++;
+  while (i < end) {
+    let val = 0;
+    while (bytes[i] & 0x80) { val = (val << 7) | (bytes[i] & 0x7f); i++; }
+    val = (val << 7) | bytes[i]; i++;
+    result.push(val);
+  }
+  return result.join('.');
+}
+function decodeName(bytes, name) {
+  // name = SEQUENCE OF RDN, RDN = SET OF AttributeTypeAndValue, ATV = SEQUENCE { OID, value }
+  const parts = [];
+  asn1Children(bytes, name).forEach(rdn => {
+    asn1Children(bytes, rdn).forEach(atv => {
+      const ch = asn1Children(bytes, atv);
+      if (ch.length >= 2) {
+        const oid = decodeOID(bytes, ch[0].contentStart, ch[0].contentEnd);
+        const name = ASN1_OID_NAMES[oid] || oid;
+        const val = new TextDecoder().decode(bytes.slice(ch[1].contentStart, ch[1].contentEnd));
+        parts.push(name + '=' + val);
+      }
+    });
+  });
+  return parts.join(', ');
+}
+function decodeTime(bytes, node) {
+  const s = new TextDecoder().decode(bytes.slice(node.contentStart, node.contentEnd));
+  // UTCTime: YYMMDDHHMMSSZ; GeneralizedTime: YYYYMMDDHHMMSSZ
+  if (node.tag === 0x17) { // UTCTime
+    const y = parseInt(s.slice(0, 2), 10);
+    const yyyy = (y >= 50 ? 1900 : 2000) + y;
+    return new Date(`${yyyy}-${s.slice(2,4)}-${s.slice(4,6)}T${s.slice(6,8)}:${s.slice(8,10)}:${s.slice(10,12)}Z`);
+  } else { // GeneralizedTime
+    return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T${s.slice(8,10)}:${s.slice(10,12)}:${s.slice(12,14)}Z`);
+  }
+}
+
+async function spkiFingerprint(spkiBytes) {
+  const buf = await crypto.subtle.digest('SHA-256', spkiBytes);
+  return bytesToB64(new Uint8Array(buf));
+}
+function arrayBufferToPem(buf, label) {
+  const b64 = bytesToB64(new Uint8Array(buf));
+  const lines = b64.match(/.{1,64}/g).join('\n');
+  return `-----BEGIN ${label}-----\n${lines}\n-----END ${label}-----`;
+}
+
+MODULES.push({
+  id: 'keys',
+  name: 'Keys',
+  icon: 'k',
+  category: 'Crypto & Security',
+  desc: 'Generate RSA/EC keypairs and inspect PEM certificates. Web Crypto only.',
+  init(c) {
+    c.innerHTML = '';
+    /* Generate */
+    const algSel = el('select');
+    [
+      ['RSA-2048', { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }],
+      ['RSA-3072', { name: 'RSASSA-PKCS1-v1_5', modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }],
+      ['RSA-4096', { name: 'RSASSA-PKCS1-v1_5', modulusLength: 4096, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }],
+      ['ECDSA P-256', { name: 'ECDSA', namedCurve: 'P-256' }],
+      ['ECDSA P-384', { name: 'ECDSA', namedCurve: 'P-384' }],
+      ['ECDSA P-521', { name: 'ECDSA', namedCurve: 'P-521' }],
+    ].forEach(([n]) => algSel.appendChild(el('option', { value: n }, n)));
+    const algMap = {
+      'RSA-2048': { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      'RSA-3072': { name: 'RSASSA-PKCS1-v1_5', modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      'RSA-4096': { name: 'RSASSA-PKCS1-v1_5', modulusLength: 4096, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      'ECDSA P-256': { name: 'ECDSA', namedCurve: 'P-256' },
+      'ECDSA P-384': { name: 'ECDSA', namedCurve: 'P-384' },
+      'ECDSA P-521': { name: 'ECDSA', namedCurve: 'P-521' },
+    };
+
+    const genStatus = el('div', { class: 'status' });
+    const pubOut = el('pre', { class: 'pre-out' });
+    const privOut = el('pre', { class: 'pre-out' });
+    const fpOut = el('div', { class: 'kv' });
+
+    async function generate() {
+      genStatus.textContent = 'Generating…';
+      genStatus.className = 'status warn';
+      pubOut.textContent = ''; privOut.textContent = ''; fpOut.innerHTML = '';
+      try {
+        const params = algMap[algSel.value];
+        const usages = params.name === 'ECDSA' ? ['sign', 'verify'] : ['sign', 'verify'];
+        const kp = await crypto.subtle.generateKey(params, true, usages);
+        const spki = await crypto.subtle.exportKey('spki', kp.publicKey);
+        const pkcs8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+        pubOut.textContent = arrayBufferToPem(spki, 'PUBLIC KEY');
+        privOut.textContent = arrayBufferToPem(pkcs8, params.name === 'ECDSA' ? 'PRIVATE KEY' : 'PRIVATE KEY');
+        const fp = await spkiFingerprint(new Uint8Array(spki));
+        fpOut.appendChild(el('div', { class: 'k' }, 'algorithm'));
+        fpOut.appendChild(el('div', { class: 'v' }, algSel.value));
+        fpOut.appendChild(el('div', { class: 'k' }, 'SPKI fingerprint (SHA-256, b64)'));
+        fpOut.appendChild(el('div', { class: 'v' }, fp));
+        genStatus.textContent = '✓ generated · keys never leave this tab';
+        genStatus.className = 'status ok';
+      } catch (e) {
+        genStatus.textContent = '✗ ' + e.message;
+        genStatus.className = 'status err';
+      }
+    }
+
+    /* Decode */
+    const pemInput = el('textarea', { spellcheck: 'false', placeholder: '-----BEGIN PUBLIC KEY----- or -----BEGIN CERTIFICATE-----', style: 'min-height:140px' });
+    pemInput.value = store.get('keys:pem', '');
+    const decodeOut = el('div', { class: 'kv' });
+    const decodeStatus = el('div', { class: 'status' });
+
+    async function decode() {
+      decodeOut.innerHTML = '';
+      decodeStatus.textContent = '';
+      const pem = pemInput.value.trim();
+      if (!pem) return;
+      const labelMatch = pem.match(/-----BEGIN ([^-]+)-----/);
+      if (!labelMatch) { decodeStatus.textContent = '✗ no PEM header found'; decodeStatus.className = 'status err'; return; }
+      const label = labelMatch[1].trim();
+      const bytes = new Uint8Array(pemToArrayBuffer(pem));
+      try {
+        if (label === 'PUBLIC KEY') {
+          // Try import as RSA, then as EC
+          let imported, info = {};
+          try {
+            imported = await crypto.subtle.importKey('spki', bytes, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, true, ['verify']);
+            info = { type: 'RSA public key', modulus_bits: imported.algorithm.modulusLength };
+          } catch {
+            for (const curve of ['P-256', 'P-384', 'P-521']) {
+              try {
+                imported = await crypto.subtle.importKey('spki', bytes, { name: 'ECDSA', namedCurve: curve }, true, ['verify']);
+                info = { type: 'EC public key', curve };
+                break;
+              } catch {}
+            }
+          }
+          if (!imported) throw new Error('could not import as RSA or EC public key');
+          const fp = await spkiFingerprint(bytes);
+          info['SPKI fingerprint'] = fp;
+          Object.entries(info).forEach(([k, v]) => {
+            decodeOut.appendChild(el('div', { class: 'k' }, k));
+            decodeOut.appendChild(el('div', { class: 'v ok' }, String(v)));
+          });
+          decodeStatus.textContent = '✓ public key decoded';
+          decodeStatus.className = 'status ok';
+        } else if (label === 'CERTIFICATE') {
+          // X.509: SEQUENCE { tbsCertificate, signatureAlgorithm, signatureValue }
+          // tbs: [0] version (optional) | INTEGER serial | SEQ alg | SEQ issuer | SEQ validity | SEQ subject | SEQ spki | …
+          const root = asn1Parse(bytes, 0);
+          const tbs = asn1Children(bytes, root)[0];
+          const tbsChildren = asn1Children(bytes, tbs);
+          // version is [0] optional EXPLICIT
+          let idx = 0;
+          if (tbsChildren[0].tag === 0xa0) idx = 1; // skip version
+          const serial = tbsChildren[idx++];
+          const sigAlg = tbsChildren[idx++];
+          const issuer = tbsChildren[idx++];
+          const validity = tbsChildren[idx++];
+          const subject = tbsChildren[idx++];
+          const spki = tbsChildren[idx++];
+          const validityChildren = asn1Children(bytes, validity);
+          const notBefore = decodeTime(bytes, validityChildren[0]);
+          const notAfter = decodeTime(bytes, validityChildren[1]);
+          const now = new Date();
+          const valid = now >= notBefore && now <= notAfter;
+          const serialHex = bytesToHex(bytes.slice(serial.contentStart, serial.contentEnd));
+          const spkiBytes = bytes.slice(spki.contentStart - (spki.contentStart - asn1Parse(bytes, tbsChildren.find((_,i)=>i===idx-1).contentStart - 2).contentStart), spki.totalEnd);
+          // simpler: re-extract spki via its byte range from the original cert (header + content)
+          const spkiFull = bytes.slice(asn1HeaderStart(bytes, spki), spki.totalEnd);
+          const fp = await spkiFingerprint(spkiFull);
+          const rows = [
+            ['subject', decodeName(bytes, subject)],
+            ['issuer', decodeName(bytes, issuer)],
+            ['serial', serialHex],
+            ['not before', notBefore.toISOString()],
+            ['not after', notAfter.toISOString() + (valid ? ' ✓ currently valid' : ' ✗ EXPIRED or not yet valid')],
+            ['SPKI fingerprint', fp],
+          ];
+          rows.forEach(([k, v]) => {
+            decodeOut.appendChild(el('div', { class: 'k' }, k));
+            const cls = (k === 'not after' && !valid) ? 'err' : 'ok';
+            decodeOut.appendChild(el('div', { class: 'v ' + cls }, String(v)));
+          });
+          decodeStatus.textContent = '✓ certificate decoded';
+          decodeStatus.className = 'status ok';
+        } else {
+          decodeStatus.textContent = 'Unsupported PEM label: ' + label;
+          decodeStatus.className = 'status warn';
+        }
+      } catch (e) {
+        decodeStatus.textContent = '✗ ' + e.message;
+        decodeStatus.className = 'status err';
+      }
+    }
+    pemInput.addEventListener('input', () => { store.set('keys:pem', pemInput.value); decode(); });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Generate keypair'),
+      el('div', { class: 'btn-row' },
+        algSel,
+        el('button', { class: 'btn btn-primary', onclick: generate }, 'Generate'),
+        el('button', { class: 'btn', onclick: () => copy(pubOut.textContent) }, 'Copy public'),
+        el('button', { class: 'btn', onclick: () => copy(privOut.textContent) }, 'Copy private'),
+        el('span', { class: 'spacer' }), genStatus
+      ),
+      fpOut,
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Public key (SPKI / PEM)'),
+      pubOut,
+      el('div', { class: 'label', style: 'margin-top:6px' }, 'Private key (PKCS#8 / PEM)'),
+      privOut,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'Decode a public key or certificate (PEM)'),
+      pemInput,
+      el('div', { class: 'btn-row' }, decodeStatus),
+      decodeOut
+    ));
+    if (pemInput.value) decode();
+  }
+});
+
+/* helper: find header start byte for a given parsed asn1 node — used to slice the full SubjectPublicKeyInfo (header + length + content) out of a cert. */
+function asn1HeaderStart(bytes, node) {
+  // Walk back from contentStart to find the tag byte. Header length depends on whether the length is short or long form.
+  // We know contentStart = tagOffset + 1 + lengthBytesLength, and we recorded contentStart but not the tag offset.
+  // Easier: scan backward; the tag byte is at (contentStart - 1 - lengthBytesLength). Compute lengthBytesLength from the length value.
+  const len = node.length;
+  let lenBytes = 1;
+  if (len >= 0x80) {
+    let l = len, n = 0;
+    while (l > 0) { n++; l >>>= 8; }
+    lenBytes = 1 + n;
+  }
+  return node.contentStart - 1 - lenBytes;
+}
 
 /* ============================================================
    APP SHELL

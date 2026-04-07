@@ -20,16 +20,19 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 
 ---
 
-## What's in it — 20 modules across 4 categories
+## What's in it — 31 modules across 4 categories
 
 **Text & Data**
 
 | Module | What it does |
 |---|---|
 | **JSON** | Format, validate, minify, collapsible tree view, JSONPath query |
-| **YAML** | YAML ↔ JSON conversion via js-yaml (lazy CDN) |
-| **Markdown** | Live preview with GFM tables / fenced code via marked.js (lazy CDN) |
+| **XML** | Format, validate, XPath query via native `DOMParser` + `document.evaluate` |
+| **Config** | N-way converter between YAML, JSON, TOML, and dotenv. js-yaml (lazy CDN) + inline TOML/dotenv parsers. |
+| **Markdown** | Live preview with GFM tables / fenced code via marked.js. "Copy as HTML" button. |
 | **Diff** | Line-level diff with inline word-level highlighting (LCS, pure JS) |
+| **Table** | Convert tables between Markdown, HTML, CSV, TSV. Auto-detect source format. |
+| **String Tools** | Case conversion, slugify, HTML escape, whitespace collapse, word/char/byte counts. |
 | **CSV** | Drop CSV/TSV → sortable table, filter, regex find/replace, dedup, export. Papa Parse (lazy CDN). |
 | **SQL** | Drop CSV → BOFH infers types and creates a SQLite table → write SQL → results. sql.js WASM (~1MB, lazy). |
 | **Log Viewer** | Drop a log file → virtual scroll up to 500K lines + live regex search. Pure JS. |
@@ -40,8 +43,10 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 |---|---|
 | **JWT** | Decode header/payload, verify HS256/384/512 and RS256/384/512, expiry & nbf checks, claim highlights |
 | **Hash** | SHA-1/256/384/512 + MD5 + HMAC. Text or file. Hex / base64 / base64url. Compare against expected. |
+| **TOTP** | RFC 6238 time-based OTP from a Base32 secret, live countdown. For testing your own 2FA. |
+| **Password** | Cryptographically random passwords (`crypto.getRandomValues`), configurable charset, bits-of-entropy readout, bulk mode. |
 | **Base64** | Encode/decode text and files, URL-safe variant |
-| **URL** | Encode/decode (component or whole-URL), parse into components + query params, build from base + kv pairs |
+| **URL** | Encode/decode, parse into components + query params, build from base + kv pairs, punycode decode |
 | **Keys** | Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs → SPKI/PKCS#8 PEM. Decode PEM public keys and X.509 certificates. |
 
 **Converters & Generators**
@@ -49,10 +54,14 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 | Module | What it does |
 |---|---|
 | **Timestamp** | Unix epoch ↔ human, timezone-aware (`Intl`), relative time |
-| **UUID** | Generate v4 (random) and v7 (time-ordered, database-friendly), bulk, parse & validate |
-| **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview |
+| **UUID** | Generate UUID v4, UUID v7, or Nano ID. Bulk. Parse & validate. |
+| **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview, "Show escapes" toggle |
+| **Number Base** | Dec / hex / oct / bin converter. 8/16/32/64-bit widths, two's-complement signed view. BigInt under the hood. |
+| **chmod** | 3×3 checkbox grid → octal + symbolic. Presets for 0644, 0755, 0600, 0777. |
+| **QR Code** | Text → QR via qrcode-generator (lazy CDN). Error-correction + cell-size settings, downloadable. |
 | **Color** | Convert hex / rgb / hsl / oklch / named via the browser's CSS parser. WCAG contrast ratio with AA / AAA pass-fail badges. |
-| **IP / Subnet** | IPv4 CIDR calculator: network, broadcast, mask, wildcard, hosts, address class, RFC1918 type, 32-bit binary view. |
+| **Unicode** | Per-character codepoint / UTF-8 / category inspector. Flags zero-width, BOM, bidi, homoglyph-friendly chars. |
+| **IP / Subnet** | IPv4 CIDR calculator + "Expand all IPs" enumeration. Network, broadcast, mask, wildcard, class, RFC1918 type, binary view. |
 | **Cron** | Parse 5-field cron, plain-English description, expanded value sets, next 10 run times in your local timezone. |
 
 **Reference**
@@ -60,6 +69,8 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 | Module | What it does |
 |---|---|
 | **HTTP Status** | Searchable reference for every HTTP status code (1xx–5xx, including WebDAV). |
+| **HTTP Headers** | Searchable request/response header reference with security notes (CSP, HSTS, X-Frame-Options, etc.). |
+| **MIME Types** | Searchable MIME type ↔ extension reference. |
 | **User Agent** | Your current `navigator.userAgent` parsed into browser/version/engine/OS/device, plus Client Hints when available. Paste any UA to parse. |
 
 ---

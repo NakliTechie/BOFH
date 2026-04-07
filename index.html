@@ -543,6 +543,65 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 .contrast-badge.pass { background: rgba(74,222,128,0.18); color: var(--ok); }
 .contrast-badge.fail { background: rgba(248,113,113,0.18); color: var(--err); }
 
+/* ----- chmod grid ----- */
+.chmod-grid {
+  display: grid;
+  grid-template-columns: max-content repeat(3, 1fr);
+  gap: 8px 18px;
+  font-family: var(--mono);
+  font-size: 13px;
+  align-items: center;
+}
+.chmod-grid .chmod-head { color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.chmod-grid label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.chmod-out {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--accent);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 14px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* ----- QR code wrap ----- */
+.qr-wrap {
+  display: inline-block;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 6px;
+}
+.qr-wrap img, .qr-wrap canvas { display: block; }
+
+/* ----- Unicode table ----- */
+.uni-table {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  width: 100%;
+  border-collapse: collapse;
+}
+.uni-table th, .uni-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.uni-table th { color: var(--text-faint); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; }
+.uni-table td.char { font-size: 18px; color: var(--text); text-align: center; width: 40px; }
+.uni-table td.cp { color: var(--accent); }
+.uni-table tr.suspicious td { background: rgba(251,191,36,0.08); }
+.uni-table tr.suspicious td.char::after { content: '⚠'; color: var(--warn); margin-left: 6px; font-size: 12px; }
+
+/* ----- Search highlight ----- */
+.nav-item mark {
+  background: rgba(255,122,69,0.28);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 /* ----- Loading badge ----- */
 .loading-badge {
   display: inline-block;
@@ -719,7 +778,7 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
       <div class="brand"><span class="brand-mark">B</span> BOFH</div>
       <div class="brand-tag">Browser-native dev toolkit. Nothing leaves your device.</div>
     </div>
-    <div id="search-wrap"><input id="search" placeholder="Filter modules…" autocomplete="off" spellcheck="false"></div>
+    <div id="search-wrap"><input id="search" placeholder="Search (name, features, keywords)…" autocomplete="off" spellcheck="false"></div>
     <nav id="nav"></nav>
     <div id="sidebar-foot">
       <button class="icon-btn" id="theme-btn" title="Toggle theme">◐</button>
@@ -745,12 +804,12 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="modal">
     <h2>BOFH</h2>
     <p style="font-size:13.5px; color:var(--text);">Browser-native dev toolkit. <strong>Nothing leaves your device.</strong></p>
-    <h3>20 modules. 4 categories.</h3>
+    <h3>31 modules. 4 categories.</h3>
     <ul>
-      <li><strong>Text & Data</strong> — JSON · YAML · Markdown · Diff · CSV · SQL · Log Viewer</li>
-      <li><strong>Crypto & Security</strong> — JWT · Hash · Base64 · URL · Keys</li>
-      <li><strong>Converters & Generators</strong> — Timestamp · UUID · Regex · Color · IP/Subnet · Cron</li>
-      <li><strong>Reference</strong> — HTTP Status · User Agent</li>
+      <li><strong>Text & Data</strong> — JSON · XML · Config · Markdown · Diff · Table · String · CSV · SQL · Log</li>
+      <li><strong>Crypto & Security</strong> — JWT · Hash · TOTP · Password · Base64 · URL · Keys</li>
+      <li><strong>Converters & Generators</strong> — Timestamp · UUID · Regex · NumBase · chmod · QR · Color · Unicode · IP/Subnet · Cron</li>
+      <li><strong>Reference</strong> — HTTP Status · HTTP Headers · MIME Types · User Agent</li>
     </ul>
     <p style="font-size:12.5px;">Every transformation runs locally — no servers, no telemetry, no random S3 buckets seeing your tokens.</p>
     <div class="modal-foot">
@@ -791,12 +850,18 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
       <div class="modal-subpane active" data-subpane="cat-text">
         <h3>JSON</h3>
         <p>Paste or drop JSON. Format, minify, validate, or browse as a collapsible tree. JSONPath (subset) supports <code>$</code>, dot/bracket paths, and array indices.</p>
-        <h3>YAML</h3>
-        <p>Two-pane YAML ↔ JSON converter using js-yaml (lazy-loaded from CDN on first open). Click either conversion button; both panes persist between sessions.</p>
+        <h3>XML</h3>
+        <p>Format, validate, and query XML with XPath. Uses the browser's native <code>DOMParser</code>, <code>XMLSerializer</code>, and <code>document.evaluate</code>. Works for SOAP, Maven POMs, Spring configs, RSS feeds, and anything else XML-shaped.</p>
+        <h3>Config</h3>
+        <p>N-way converter between <strong>YAML</strong>, <strong>JSON</strong>, <strong>TOML</strong>, and <strong>dotenv</strong>. Pick source format → pick target format → paste → converted output appears on the right. YAML uses js-yaml (lazy CDN). TOML and dotenv are parsed inline with minimal pure-JS parsers — enough for 90% of real config files.</p>
         <h3>Markdown</h3>
-        <p>Live Markdown preview (CommonMark + GFM tables / fenced code) using marked.js (lazy CDN). Source is on the left, rendered preview on the right. PDF/DOCX import is on the backlog.</p>
+        <p>Live Markdown preview (CommonMark + GFM tables / fenced code) using marked.js (lazy CDN). Source on the left, preview on the right. <strong>"Copy as HTML"</strong> button copies the rendered HTML for pasting into email clients, CMSes, or anything else that takes HTML not Markdown.</p>
         <h3>Diff</h3>
         <p>Two textareas, line-level diff via LCS. When a deleted line is followed by an added line, an inline word-level diff highlights exactly what changed within the line. Pure JS, no CDN.</p>
+        <h3>Table</h3>
+        <p>Convert tables between <strong>Markdown</strong>, <strong>HTML</strong>, <strong>CSV</strong>, and <strong>TSV</strong>. Pick source and target formats; auto-detect button sniffs the format from what you paste. Handles quoted CSV fields with embedded separators.</p>
+        <h3>String Tools</h3>
+        <p>Batch string transforms in one tab: camelCase, PascalCase, snake_case, SCREAMING_SNAKE, kebab-case, dot.case, Title Case, slug, HTML-escape, whitespace-collapse, reversed. Plus a counts panel showing chars / chars-without-spaces / words / lines / UTF-8 bytes.</p>
         <h3>CSV</h3>
         <p>Drop a CSV/TSV file or paste rows. Get a sortable table (click headers), substring filter, regex find/replace across all cells, exact-row dedup, and CSV re-export. Loaded data is shared with the SQL tab via "Import from CSV tab". Uses Papa Parse from CDN.</p>
         <h3>SQL</h3>
@@ -809,10 +874,14 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
         <p>Decode any JWT. Verify HS256 by typing the secret. Verify RS256 by pasting the issuer's public key in PEM (<code>-----BEGIN PUBLIC KEY-----</code>). Expiry and "not before" are checked automatically.</p>
         <h3>Hash</h3>
         <p>SHA-1/256/384/512 and MD5 (legacy compat) for text or file input. HMAC-SHA-256/384/512 with a custom key. Output as hex, base64, or base64url. Compare against an expected hash for one-click integrity checks.</p>
+        <h3>TOTP</h3>
+        <p>Generate time-based one-time passwords (RFC 6238) from a Base32 secret. Live countdown, HMAC-SHA1 via Web Crypto. Intended for testing your own 2FA implementations without adding throwaway secrets to a real authenticator app.</p>
+        <h3>Password</h3>
+        <p>Cryptographically random passwords using <code>crypto.getRandomValues</code>. Configurable length, charset (lower / UPPER / digits / symbols), ambiguous-character exclusion (<code>0 O l 1 | ` '</code>), bulk mode, and a bits-of-entropy readout.</p>
         <h3>Base64</h3>
         <p>Text mode encodes UTF-8. File mode reads any file as bytes. URL-safe toggle uses <code>-_</code> instead of <code>+/</code> and strips padding.</p>
         <h3>URL</h3>
-        <p>Three sub-tools in one. <strong>Encode/decode</strong> with a component (<code>encodeURIComponent</code>) vs whole-URL (<code>encodeURI</code>) toggle. <strong>Parse</strong> any URL into protocol, host, port, path, query, and hash, plus a per-query-param breakdown. <strong>Build</strong> a URL from a base + a list of key/value rows.</p>
+        <p>Three sub-tools in one. <strong>Encode/decode</strong> with a component (<code>encodeURIComponent</code>) vs whole-URL (<code>encodeURI</code>) toggle. <strong>Parse</strong> any URL into protocol, host, port, path, query, and hash, plus a per-query-param breakdown (and Unicode form of punycode hostnames). <strong>Build</strong> a URL from a base + a list of key/value rows.</p>
         <h3>Keys</h3>
         <p>Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs entirely in your browser. Public key exports as SPKI PEM, private key as PKCS#8 PEM. Shows a SHA-256 SPKI fingerprint (the same one your TLS clients use). Paste any PEM <code>PUBLIC KEY</code> or <code>CERTIFICATE</code> to inspect — for X.509 certs you get subject, issuer, serial, validity dates, and the SPKI fingerprint, parsed via a tiny ASN.1 walker.</p>
       </div>
@@ -820,19 +889,31 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
         <h3>Timestamp</h3>
         <p>Detects seconds vs milliseconds. Shows ISO, local, and a relative ("3 days ago") form. Timezone selector uses your browser's IANA list.</p>
         <h3>UUID</h3>
-        <p>v4 is fully random. v7 is time-ordered (UNIX-ms timestamp + random) and database-friendly. Bulk-generate up to 1000.</p>
+        <p>Generate <strong>UUID v4</strong> (random), <strong>UUID v7</strong> (time-ordered, database-friendly), or <strong>Nano ID</strong> (21-char URL-safe). Bulk-generate up to 1000. Parse and validate existing UUIDs.</p>
         <h3>Regex</h3>
-        <p>JavaScript regex with live match highlighting, capture-group inspection, all six flags (<code>g i m s u y</code>), a preset library (email, IPv4, UUID, ISO date, URL, hex color, phone), and a live replacement preview supporting <code>$1</code>/<code>$2</code> backreferences.</p>
+        <p>JavaScript regex with live match highlighting, capture-group inspection, all six flags (<code>g i m s u y</code>), a preset library (email, IPv4, UUID, ISO date, URL, hex color, phone), and a live replacement preview supporting <code>$1</code>/<code>$2</code> backreferences. <strong>"Show escapes"</strong> toggle visualises <code>\\n \\t \\r</code> and control chars inline.</p>
+        <h3>Number Base</h3>
+        <p>Convert between decimal / hex / octal / binary with a bit-width selector (8/16/32/64). Shows unsigned and two's-complement signed values, bit count, and padded hex. Uses BigInt so the 64-bit mode is exact.</p>
+        <h3>chmod</h3>
+        <p>Unix file permissions calculator. Click the 3×3 checkbox grid (user / group / other × read / write / execute) and see octal + symbolic notation update live. Presets for 0644, 0755, 0600, 0777.</p>
+        <h3>QR Code</h3>
+        <p>Text or URL → QR code, rendered in-browser via qrcode-generator (lazy CDN). Choose error correction level (L/M/Q/H) and cell size; download the result as a GIF.</p>
         <h3>Color</h3>
         <p>Two color inputs side-by-side. Each parses any CSS color (hex, rgb, hsl, oklch, named) via the browser's own parser, shows the swatch, and emits hex/rgb/hsl/oklch versions. Click any output to copy. The bottom panel shows the WCAG contrast ratio between A and B with pass/fail badges for AA / AAA at normal and large text sizes.</p>
+        <h3>Unicode</h3>
+        <p>Paste any text → per-character breakdown: codepoint, UTF-8 bytes, general category, and category name. Suspicious characters (zero-width marks, BOMs, bidi overrides, non-space whitespace) are highlighted so you can catch homoglyph attacks and sneaky copy-paste bugs.</p>
         <h3>IP / Subnet</h3>
-        <p>IPv4 CIDR calculator. Enter <code>10.0.0.42/22</code> and get network, broadcast, first/last host, total addrs, usable hosts, subnet mask, wildcard mask, address class, RFC1918 classification, and 32-bit binary representation of IP, mask, and network. Click any value to copy.</p>
+        <p>IPv4 CIDR calculator. Enter <code>10.0.0.42/22</code> and get network, broadcast, first/last host, total addrs, usable hosts, subnet mask, wildcard mask, address class, RFC1918 classification, and 32-bit binary representation of IP, mask, and network. Click any value to copy. <strong>"Expand all IPs"</strong> button enumerates every address in the range (capped at /20 to prevent accidentally expanding a /8).</p>
         <h3>Cron</h3>
         <p>Parses 5-field cron expressions (minute, hour, day-of-month, month, day-of-week). Shows a plain-English description of common patterns, expanded value sets per field, and the next 10 run times in your local timezone. Picks up the Vixie cron rule for combined day-of-month + day-of-week (OR semantics). Sample dropdown for common patterns.</p>
       </div>
       <div class="modal-subpane" data-subpane="cat-ref">
         <h3>HTTP Status</h3>
         <p>Searchable reference for every HTTP status code from 1xx through 5xx, including the WebDAV and CDN-flavored ones. Click any card to copy "<code>code name</code>" to the clipboard. Filter matches code, name, or description.</p>
+        <h3>HTTP Headers</h3>
+        <p>Searchable reference for common request and response headers. Each card is tagged as <em>request</em> or <em>response</em> and includes security notes where it matters (CSP, HSTS, X-Frame-Options, Set-Cookie flags, etc.). Click any card to copy the header name.</p>
+        <h3>MIME Types</h3>
+        <p>Searchable MIME type ↔ extension reference covering ~60 common types across text, application, image, audio, video, and font categories. Filter matches type, extension, or description. Click a card to copy the MIME type.</p>
         <h3>User Agent</h3>
         <p>Shows your current <code>navigator.userAgent</code> and parses it into browser, version, engine, OS, and device type. Paste any UA string to parse it. Modern browsers also expose structured data via <code>navigator.userAgentData</code> (Client Hints), shown when available.</p>
       </div>
@@ -965,6 +1046,7 @@ MODULES.push({
   icon: '{}',
   category: 'Text & Data',
   desc: 'Format, validate, tree-view, and query JSON.',
+  keywords: ['json','format','minify','tree','jsonpath','validate','pretty','parse'],
   init(c) {
     const last = store.get('json:input', '{\n  "hello": "world",\n  "n": 42,\n  "nested": { "a": [1, 2, 3] }\n}');
     c.innerHTML = '';
@@ -1148,6 +1230,7 @@ MODULES.push({
   icon: '🔐',
   category: 'Crypto & Security',
   desc: 'Decode, inspect, and verify JSON Web Tokens. Nothing leaves your browser.',
+  keywords: ['jwt','jws','jose','token','bearer','auth','hs256','rs256','verify','decode','claims','expiry'],
   init(c) {
     c.innerHTML = '';
     const last = store.get('jwt:input', '');
@@ -1319,6 +1402,7 @@ MODULES.push({
   icon: 'b6',
   category: 'Crypto & Security',
   desc: 'Encode and decode text or files. URL-safe variant supported.',
+  keywords: ['base64','b64','encode','decode','url safe','btoa','atob','binary','file'],
   init(c) {
     c.innerHTML = '';
     const text = el('textarea', { spellcheck: 'false', placeholder: 'Text…' });
@@ -1412,6 +1496,7 @@ MODULES.push({
   icon: '⏱',
   category: 'Converters & Generators',
   desc: 'Unix epoch ↔ human time. Timezone-aware.',
+  keywords: ['timestamp','epoch','unix','date','time','timezone','iso','relative','intl'],
   init(c) {
     c.innerHTML = '';
     const epochInput = el('input', { type: 'text', placeholder: 'e.g. 1700000000 or 1700000000000' });
@@ -1524,17 +1609,28 @@ function uuidParse(s) {
   return { ok: true, info };
 }
 
+const NANOID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+function nanoId(len = 21) {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  let s = '';
+  for (let i = 0; i < len; i++) s += NANOID_ALPHABET[bytes[i] & 63];
+  return s;
+}
+
 MODULES.push({
   id: 'uuid',
   name: 'UUID',
   icon: 'u',
   category: 'Converters & Generators',
-  desc: 'Generate v4 (random) or v7 (time-ordered) UUIDs. Parse and validate.',
+  desc: 'Generate UUID v4, UUID v7, or Nano ID. Parse and validate.',
+  keywords: ['uuid','guid','v4','v7','nano','nanoid','identifier','random','time ordered','ulid'],
   init(c) {
     c.innerHTML = '';
     const versionSel = el('select');
-    versionSel.appendChild(el('option', { value: '4' }, 'v4 — random'));
-    versionSel.appendChild(el('option', { value: '7' }, 'v7 — time-ordered'));
+    versionSel.appendChild(el('option', { value: '4' }, 'UUID v4 — random'));
+    versionSel.appendChild(el('option', { value: '7' }, 'UUID v7 — time-ordered'));
+    versionSel.appendChild(el('option', { value: 'nano' }, 'Nano ID (21 chars)'));
     versionSel.value = store.get('uuid:version', '4');
     const countInput = el('input', { type: 'number', value: store.get('uuid:count', '10'), min: '1', max: '1000', style: 'max-width:100px' });
     const list = el('div', { class: 'uuid-list' });
@@ -1544,7 +1640,7 @@ MODULES.push({
     function generate() {
       const v = versionSel.value;
       const n = Math.max(1, Math.min(1000, parseInt(countInput.value || '1', 10)));
-      const fn = v === '7' ? uuidV7 : uuidV4;
+      const fn = v === '7' ? uuidV7 : (v === 'nano' ? () => nanoId(21) : uuidV4);
       list.innerHTML = '';
       const lines = [];
       for (let i = 0; i < n; i++) lines.push(fn());
@@ -1666,6 +1762,7 @@ MODULES.push({
   icon: '#',
   category: 'Crypto & Security',
   desc: 'SHA, MD5, and HMAC. Text or file. Runs in your browser.',
+  keywords: ['hash','sha','sha1','sha-1','sha256','sha-256','sha512','md5','hmac','digest','checksum','integrity','sign'],
   init(c) {
     c.innerHTML = '';
     const algSel = el('select');
@@ -1775,6 +1872,48 @@ MODULES.push({
   }
 });
 
+/* ---------- Punycode decoder (RFC 3492) ---------- */
+function punycodeDecode(input) {
+  const base = 36, tMin = 1, tMax = 26, skew = 38, damp = 700, initialBias = 72, initialN = 128;
+  const output = [];
+  let n = initialN, i = 0, bias = initialBias;
+  let basic = input.lastIndexOf('-');
+  if (basic < 0) basic = 0;
+  for (let j = 0; j < basic; j++) {
+    if (input.charCodeAt(j) >= 0x80) throw new Error('non-basic char in basic prefix');
+    output.push(input.charCodeAt(j));
+  }
+  let idx = basic > 0 ? basic + 1 : 0;
+  while (idx < input.length) {
+    const oldi = i;
+    let w = 1;
+    for (let k = base; ; k += base) {
+      if (idx >= input.length) throw new Error('truncated');
+      const c = input.charCodeAt(idx++);
+      let digit;
+      if (c >= 48 && c <= 57) digit = c - 22; // 0-9 → 26-35
+      else if (c >= 97 && c <= 122) digit = c - 97; // a-z → 0-25
+      else if (c >= 65 && c <= 90) digit = c - 65;
+      else throw new Error('invalid digit');
+      i += digit * w;
+      const t = k <= bias ? tMin : (k >= bias + tMax ? tMax : k - bias);
+      if (digit < t) break;
+      w *= base - t;
+    }
+    const out = output.length + 1;
+    // bias adapt
+    let delta = oldi === 0 ? Math.floor((i - oldi) / damp) : Math.floor((i - oldi) / 2);
+    delta += Math.floor(delta / out);
+    let k = 0;
+    while (delta > Math.floor(((base - tMin) * tMax) / 2)) { delta = Math.floor(delta / (base - tMin)); k += base; }
+    bias = k + Math.floor(((base - tMin + 1) * delta) / (delta + skew));
+    n += Math.floor(i / out);
+    i = i % out;
+    output.splice(i++, 0, n);
+  }
+  return String.fromCodePoint(...output);
+}
+
 /* ---------- URL ---------- */
 MODULES.push({
   id: 'url',
@@ -1782,6 +1921,7 @@ MODULES.push({
   icon: '~',
   category: 'Crypto & Security',
   desc: 'Encode, decode, parse, and build URLs.',
+  keywords: ['url','uri','encode','decode','query','querystring','params','parse','build','punycode','idn'],
   init(c) {
     c.innerHTML = '';
     /* encode/decode pane */
@@ -1816,12 +1956,31 @@ MODULES.push({
       if (!v) return;
       try {
         const u = new URL(v);
+        // Punycode decode — the URL constructor already IDN-normalizes to ASCII form for xn--
+        // To decode, use the URL's .hostname which is ASCII, and build a decoded version from the original input
+        let punycodeDecoded = null;
+        if (/xn--/.test(u.hostname)) {
+          try {
+            // The trick: a URL containing xn-- is the ASCII form; we decode by probing through
+            // a hidden document element that browsers render in Unicode form.
+            const probe = document.createElement('a');
+            probe.href = u.href;
+            // Most browsers preserve ASCII form in .hostname; use the fallback decoder below.
+            punycodeDecoded = u.hostname.split('.').map(label =>
+              label.startsWith('xn--') ? punycodeDecode(label.slice(4)) : label
+            ).join('.');
+          } catch {}
+        }
         const rows = [
           ['protocol', u.protocol], ['username', u.username || '(none)'], ['password', u.password ? '••• ('+u.password.length+' chars)' : '(none)'],
-          ['host', u.host], ['hostname', u.hostname], ['port', u.port || '(default)'],
+          ['host', u.host], ['hostname', u.hostname]
+        ];
+        if (punycodeDecoded && punycodeDecoded !== u.hostname) rows.push(['hostname (Unicode)', punycodeDecoded]);
+        rows.push(
+          ['port', u.port || '(default)'],
           ['pathname', u.pathname], ['search', u.search || '(none)'], ['hash', u.hash || '(none)'],
           ['origin', u.origin]
-        ];
+        );
         rows.forEach(([k, vv]) => {
           parseOut.appendChild(el('div', { class: 'k' }, k));
           const vd = el('div', { class: 'v' }, String(vv));
@@ -1932,6 +2091,7 @@ MODULES.push({
   icon: '/',
   category: 'Converters & Generators',
   desc: 'Test regular expressions with live highlighting and capture groups.',
+  keywords: ['regex','regexp','regular expression','pattern','match','capture','group','flags','replace','escape'],
   init(c) {
     c.innerHTML = '';
     const pattern = el('input', { type: 'text', placeholder: 'Pattern (no slashes)' });
@@ -1959,6 +2119,9 @@ MODULES.push({
 
     const sample = el('textarea', { spellcheck: 'false', placeholder: 'Sample text…' });
     sample.value = store.get('regex:sample', 'Contact alice@example.com or bob@test.org for more info.\nAnother line: charlie@nowhere.io');
+
+    const showEscapes = el('input', { type: 'checkbox' });
+    if (store.get('regex:escapes', '0') === '1') showEscapes.checked = true;
 
     const highlightOut = el('div', { class: 'pre-out' });
     const matchTable = el('div', { class: 'pre-out' });
@@ -1997,15 +2160,43 @@ MODULES.push({
         if (matches.length > 5000) break;
       }
       // build highlighted html
+      function appendText(parent, s) {
+        if (!showEscapes.checked) { parent.appendChild(document.createTextNode(s)); return; }
+        let i = 0;
+        while (i < s.length) {
+          const ch = s.charCodeAt(i);
+          let label = null;
+          if (ch === 10) label = '\\n';
+          else if (ch === 13) label = '\\r';
+          else if (ch === 9) label = '\\t';
+          else if (ch === 0) label = '\\0';
+          else if (ch < 32) label = '\\x' + ch.toString(16).padStart(2,'0');
+          if (label) {
+            parent.appendChild(el('span', { style: 'background:rgba(96,165,250,0.3);color:var(--link);border-radius:2px;padding:0 2px;font-size:11px' }, label));
+            if (ch === 10) parent.appendChild(document.createTextNode('\n'));
+            i++;
+          } else {
+            let j = i;
+            while (j < s.length) {
+              const c = s.charCodeAt(j);
+              if (c === 10 || c === 13 || c === 9 || c === 0 || c < 32) break;
+              j++;
+            }
+            parent.appendChild(document.createTextNode(s.slice(i, j)));
+            i = j;
+          }
+        }
+      }
       let last = 0;
       const frag = document.createDocumentFragment();
       matches.forEach(mm => {
-        if (mm.index > last) frag.appendChild(document.createTextNode(text.slice(last, mm.index)));
-        const mark = el('span', { style: 'background:rgba(255,122,69,0.35);color:var(--text);border-radius:2px;padding:0 1px' }, mm.full || '∅');
+        if (mm.index > last) appendText(frag, text.slice(last, mm.index));
+        const mark = el('span', { style: 'background:rgba(255,122,69,0.35);color:var(--text);border-radius:2px;padding:0 1px' });
+        appendText(mark, mm.full || '∅');
         frag.appendChild(mark);
         last = mm.index + mm.full.length;
       });
-      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      if (last < text.length) appendText(frag, text.slice(last));
       highlightOut.appendChild(frag);
 
       // match table
@@ -2039,6 +2230,7 @@ MODULES.push({
     pattern.addEventListener('input', () => { store.set('regex:pattern', pattern.value); run(); });
     sample.addEventListener('input', () => { store.set('regex:sample', sample.value); run(); });
     replaceInput.addEventListener('input', () => { store.set('regex:replace', replaceInput.value); run(); });
+    showEscapes.addEventListener('change', () => { store.set('regex:escapes', showEscapes.checked ? '1' : '0'); run(); });
     Object.values(flagInputs).forEach(cb => cb.addEventListener('change', run));
 
     c.appendChild(el('div', { class: 'col' },
@@ -2047,6 +2239,7 @@ MODULES.push({
       ),
       el('div', { class: 'btn-row' },
         el('div', { class: 'label' }, 'Flags'), flagsBox,
+        el('label', { style: 'display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-dim);margin-left:12px' }, showEscapes, 'Show escapes'),
         el('span', { class: 'spacer' }), presetSel, status
       ),
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Sample text'),
@@ -2150,6 +2343,7 @@ MODULES.push({
   icon: 'k',
   category: 'Crypto & Security',
   desc: 'Generate RSA/EC keypairs and inspect PEM certificates. Web Crypto only.',
+  keywords: ['keys','keypair','rsa','ecdsa','ec','x509','x.509','pem','certificate','spki','pkcs8','fingerprint','tls','asn.1','subject','issuer'],
   init(c) {
     c.innerHTML = '';
     /* Generate */
@@ -2394,6 +2588,7 @@ MODULES.push({
   icon: '±',
   category: 'Text & Data',
   desc: 'Line and word-level diff between two texts. Pure JS.',
+  keywords: ['diff','compare','lcs','myers','changes','patch','merge'],
   init(c) {
     c.innerHTML = '';
     const left = el('textarea', { spellcheck: 'false', placeholder: 'Original…' });
@@ -2474,15 +2669,160 @@ MODULES.push({
   }
 });
 
-/* ---------- YAML ---------- */
+/* ---------- Config (YAML / JSON / TOML / dotenv) ---------- */
 const YAML_CDN = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
 
+/* Minimal TOML 0.5-ish parser (no arrays of tables, no dotted keys, no datetimes).
+   Good enough for 90% of config files. Returns { ok, value } or { ok:false, err }. */
+function tomlParse(src) {
+  const result = {};
+  let current = result;
+  const lines = src.split(/\r?\n/);
+  for (let ln = 0; ln < lines.length; ln++) {
+    let line = lines[ln].trim();
+    if (!line || line.startsWith('#')) continue;
+    // table header
+    if (line.startsWith('[') && line.endsWith(']')) {
+      const name = line.slice(1, -1).trim();
+      const parts = name.split('.').map(s => s.trim());
+      current = result;
+      for (const p of parts) {
+        if (!(p in current)) current[p] = {};
+        current = current[p];
+      }
+      continue;
+    }
+    // key = value
+    const eq = line.indexOf('=');
+    if (eq < 0) throw new Error('line ' + (ln + 1) + ': expected "key = value"');
+    const key = line.slice(0, eq).trim().replace(/^["']|["']$/g, '');
+    let val = line.slice(eq + 1).trim();
+    // strip trailing comment outside strings
+    if (!val.startsWith('"') && !val.startsWith("'") && !val.startsWith('[')) {
+      const hash = val.indexOf('#');
+      if (hash >= 0) val = val.slice(0, hash).trim();
+    }
+    current[key] = tomlValue(val, ln + 1);
+  }
+  return result;
+}
+function tomlValue(v, ln) {
+  if (v === '' ) throw new Error('line ' + ln + ': empty value');
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+  if (/^-?\d+\.\d+$/.test(v)) return parseFloat(v);
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    return v.slice(1, -1).replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  }
+  if (v.startsWith('[') && v.endsWith(']')) {
+    const inner = v.slice(1, -1).trim();
+    if (!inner) return [];
+    // split on top-level commas
+    const items = [];
+    let depth = 0, start = 0, inStr = false, quote = '';
+    for (let i = 0; i < inner.length; i++) {
+      const c = inner[i];
+      if (inStr) { if (c === quote && inner[i-1] !== '\\') inStr = false; continue; }
+      if (c === '"' || c === "'") { inStr = true; quote = c; continue; }
+      if (c === '[') depth++;
+      else if (c === ']') depth--;
+      else if (c === ',' && depth === 0) { items.push(inner.slice(start, i).trim()); start = i + 1; }
+    }
+    items.push(inner.slice(start).trim());
+    return items.filter(x => x.length).map(x => tomlValue(x, ln));
+  }
+  throw new Error('line ' + ln + ': unrecognised value "' + v + '"');
+}
+function tomlStringify(obj, prefix = '') {
+  let out = '';
+  const scalars = [];
+  const tables = [];
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) tables.push(k);
+    else scalars.push(k);
+  }
+  for (const k of scalars) {
+    out += k + ' = ' + tomlFormatVal(obj[k]) + '\n';
+  }
+  for (const k of tables) {
+    const full = prefix ? prefix + '.' + k : k;
+    out += (out ? '\n' : '') + '[' + full + ']\n';
+    out += tomlStringify(obj[k], full);
+  }
+  return out;
+}
+function tomlFormatVal(v) {
+  if (v === null || v === undefined) return '""';
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'string') return '"' + v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+  if (Array.isArray(v)) return '[' + v.map(tomlFormatVal).join(', ') + ']';
+  return '"' + String(v) + '"';
+}
+
+/* dotenv parser: KEY=value, KEY="value with spaces", comments via #, no nesting */
+function dotenvParse(src) {
+  const out = {};
+  const lines = src.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    // trim leading whitespace but allow trailing values
+    const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!match) {
+      if (line.trim() === '' || line.trim().startsWith('#')) continue;
+      throw new Error('line ' + (i + 1) + ': invalid KEY=VALUE');
+    }
+    const key = match[1];
+    let val = match[2];
+    // strip inline comment if not inside quotes
+    if (!val.startsWith('"') && !val.startsWith("'")) {
+      const hash = val.indexOf(' #');
+      if (hash >= 0) val = val.slice(0, hash).trim();
+    }
+    // strip matching quotes
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1).replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    }
+    out[key] = val;
+  }
+  return out;
+}
+function dotenvStringify(obj) {
+  // Only scalar values make sense — nested objects get flattened with dots.
+  const lines = [];
+  const walk = (o, prefix) => {
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      const key = prefix ? prefix + '_' + k.toUpperCase() : k.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      if (v && typeof v === 'object' && !Array.isArray(v)) walk(v, key);
+      else {
+        const s = Array.isArray(v) ? v.join(',') : String(v);
+        const needsQuote = /[\s"'#]/.test(s);
+        lines.push(key + '=' + (needsQuote ? '"' + s.replace(/"/g, '\\"') + '"' : s));
+      }
+    }
+  };
+  walk(obj, '');
+  return lines.join('\n') + '\n';
+}
+
+const CONFIG_FORMATS = ['yaml', 'json', 'toml', 'dotenv'];
+const CONFIG_SEEDS = {
+  yaml: 'name: BOFH\nversion: 0.5\nmodules:\n  - JSON\n  - JWT\n  - Hash\nflags:\n  cool: true\n',
+  json: '',
+  toml: '',
+  dotenv: ''
+};
+
 MODULES.push({
-  id: 'yaml',
-  name: 'YAML',
-  icon: 'y',
+  id: 'config',
+  name: 'Config',
+  icon: '⚙',
   category: 'Text & Data',
-  desc: 'Convert between YAML and JSON. Loaded from CDN on first use.',
+  desc: 'Convert between YAML, JSON, TOML, and dotenv configs.',
+  keywords: ['yaml','json','toml','dotenv','env','config','configuration','settings','properties','ini'],
   async init(c) {
     c.innerHTML = '';
     const badge = el('div', { class: 'loading-badge' }, 'Loading js-yaml…');
@@ -2490,47 +2830,72 @@ MODULES.push({
     try { await loadScript(YAML_CDN); } catch (e) { badge.textContent = '✗ failed: ' + e.message; return; }
     badge.remove();
 
-    const yamlIn = el('textarea', { spellcheck: 'false', placeholder: 'YAML…' });
-    yamlIn.value = store.get('yaml:yaml', 'name: BOFH\nversion: 0.3\nmodules:\n  - JSON\n  - JWT\n  - Hash\nflags:\n  cool: true\n');
-    const jsonIn = el('textarea', { spellcheck: 'false', placeholder: 'JSON…' });
-    jsonIn.value = store.get('yaml:json', '');
+    const srcSel = el('select');
+    const dstSel = el('select');
+    const labels = { yaml: 'YAML', json: 'JSON', toml: 'TOML', dotenv: 'dotenv' };
+    CONFIG_FORMATS.forEach(f => {
+      srcSel.appendChild(el('option', { value: f }, labels[f]));
+      dstSel.appendChild(el('option', { value: f }, labels[f]));
+    });
+    srcSel.value = store.get('config:src', 'yaml');
+    dstSel.value = store.get('config:dst', 'json');
+
+    const srcTa = el('textarea', { spellcheck: 'false', placeholder: 'Source config…' });
+    srcTa.value = store.get('config:input', CONFIG_SEEDS.yaml);
+    const dstTa = el('textarea', { spellcheck: 'false', placeholder: 'Output…' });
     const status = el('div', { class: 'status' });
 
-    function y2j() {
-      try {
-        const obj = jsyaml.load(yamlIn.value);
-        jsonIn.value = JSON.stringify(obj, null, 2);
-        store.set('yaml:json', jsonIn.value);
-        status.textContent = '✓ YAML → JSON';
-        status.className = 'status ok';
-      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    function parseSrc(format, src) {
+      if (!src.trim()) return {};
+      if (format === 'json') return JSON.parse(src);
+      if (format === 'yaml') return jsyaml.load(src);
+      if (format === 'toml') return tomlParse(src);
+      if (format === 'dotenv') return dotenvParse(src);
     }
-    function j2y() {
-      try {
-        const obj = JSON.parse(jsonIn.value);
-        yamlIn.value = jsyaml.dump(obj, { indent: 2, lineWidth: 100 });
-        store.set('yaml:yaml', yamlIn.value);
-        status.textContent = '✓ JSON → YAML';
-        status.className = 'status ok';
-      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    function stringifyDst(format, obj) {
+      if (format === 'json') return JSON.stringify(obj, null, 2);
+      if (format === 'yaml') return jsyaml.dump(obj, { indent: 2, lineWidth: 100 });
+      if (format === 'toml') return tomlStringify(obj);
+      if (format === 'dotenv') return dotenvStringify(obj);
     }
-    yamlIn.addEventListener('input', () => store.set('yaml:yaml', yamlIn.value));
-    jsonIn.addEventListener('input', () => store.set('yaml:json', jsonIn.value));
+    function convert() {
+      try {
+        const obj = parseSrc(srcSel.value, srcTa.value);
+        dstTa.value = stringifyDst(dstSel.value, obj) || '';
+        status.textContent = '✓ ' + labels[srcSel.value] + ' → ' + labels[dstSel.value];
+        status.className = 'status ok';
+        store.set('config:input', srcTa.value);
+        store.set('config:src', srcSel.value);
+        store.set('config:dst', dstSel.value);
+      } catch (e) {
+        status.textContent = '✗ ' + e.message;
+        status.className = 'status err';
+      }
+    }
+    srcTa.addEventListener('input', () => { store.set('config:input', srcTa.value); convert(); });
+    srcSel.addEventListener('change', () => { store.set('config:src', srcSel.value); convert(); });
+    dstSel.addEventListener('change', () => { store.set('config:dst', dstSel.value); convert(); });
 
     c.appendChild(el('div', { class: 'col' },
       el('div', { class: 'row' },
-        el('div', { class: 'col' }, el('div', { class: 'label' }, 'YAML'), yamlIn),
-        el('div', { class: 'col' }, el('div', { class: 'label' }, 'JSON'), jsonIn)
+        el('div', { class: 'col' },
+          el('div', { class: 'btn-row' }, el('div', { class: 'label' }, 'Source'), srcSel),
+          srcTa
+        ),
+        el('div', { class: 'col' },
+          el('div', { class: 'btn-row' }, el('div', { class: 'label' }, 'Target'), dstSel),
+          dstTa
+        )
       ),
       el('div', { class: 'btn-row', style: 'margin-top:8px' },
-        el('button', { class: 'btn btn-primary', onclick: y2j }, 'YAML → JSON'),
-        el('button', { class: 'btn btn-primary', onclick: j2y }, 'JSON → YAML'),
-        el('button', { class: 'btn', onclick: () => copy(yamlIn.value) }, 'Copy YAML'),
-        el('button', { class: 'btn', onclick: () => copy(jsonIn.value) }, 'Copy JSON'),
+        el('button', { class: 'btn btn-primary', onclick: convert }, 'Convert'),
+        el('button', { class: 'btn', onclick: () => { const s = srcSel.value; srcSel.value = dstSel.value; dstSel.value = s; const t = srcTa.value; srcTa.value = dstTa.value; dstTa.value = t; srcSel.dispatchEvent(new Event('change')); } }, 'Swap'),
+        el('button', { class: 'btn', onclick: () => copy(srcTa.value) }, 'Copy source'),
+        el('button', { class: 'btn', onclick: () => copy(dstTa.value) }, 'Copy target'),
         el('span', { class: 'spacer' }), status
       )
     ));
-    if (yamlIn.value && !jsonIn.value) y2j();
+    convert();
   }
 });
 
@@ -2543,6 +2908,7 @@ MODULES.push({
   icon: 'm',
   category: 'Text & Data',
   desc: 'Live Markdown preview. CommonMark + GFM via marked.js.',
+  keywords: ['markdown','md','commonmark','gfm','preview','html','render'],
   async init(c) {
     c.innerHTML = '';
     const badge = el('div', { class: 'loading-badge' }, 'Loading marked…');
@@ -2566,6 +2932,10 @@ MODULES.push({
       el('div', {}, el('div', { class: 'label' }, 'Preview'), preview)
     );
     c.appendChild(wrap);
+    c.appendChild(el('div', { class: 'btn-row', style: 'margin-top:10px' },
+      el('button', { class: 'btn', onclick: () => copy(input.value) }, 'Copy Markdown'),
+      el('button', { class: 'btn btn-primary', onclick: () => copy(marked.parse(input.value)) }, 'Copy as HTML')
+    ));
     render();
   }
 });
@@ -2583,6 +2953,7 @@ MODULES.push({
   icon: 'cv',
   category: 'Text & Data',
   desc: 'Import CSV/TSV. Filter, sort, dedup, find/replace, export.',
+  keywords: ['csv','tsv','spreadsheet','excel','table','filter','sort','dedup','find replace'],
   async init(c) {
     c.innerHTML = '';
     const badge = el('div', { class: 'loading-badge' }, 'Loading Papa Parse…');
@@ -2752,6 +3123,7 @@ MODULES.push({
   icon: 'sq',
   category: 'Text & Data',
   desc: 'Drop CSV → query with SQL. SQLite (sql.js WASM, ~1MB).',
+  keywords: ['sql','sqlite','query','select','join','where','group by','database','csv','wasm'],
   async init(c) {
     c.innerHTML = '';
     const badge = el('div', { class: 'loading-badge' }, 'Loading sql.js (~1MB WASM)…');
@@ -2889,6 +3261,7 @@ MODULES.push({
   icon: 'lg',
   category: 'Text & Data',
   desc: 'Drop a log file. Virtual scroll, regex search, line counts.',
+  keywords: ['log','logs','viewer','tail','grep','search','regex','virtual scroll','syslog','nginx','access log'],
   init(c) {
     c.innerHTML = '';
     const fileInput = el('input', { type: 'file', accept: '.log,.txt,.json' });
@@ -3083,6 +3456,7 @@ MODULES.push({
   icon: '⚑',
   category: 'Reference',
   desc: 'Searchable reference for every HTTP status code.',
+  keywords: ['http','status','code','200','404','500','response','error','webdav','rest'],
   init(c) {
     c.innerHTML = '';
     const search = el('input', { type: 'text', placeholder: 'Search code, name, or description…' });
@@ -3153,6 +3527,7 @@ MODULES.push({
   icon: 'ua',
   category: 'Reference',
   desc: 'Show your current user agent. Or paste any UA to parse it.',
+  keywords: ['user agent','ua','browser','chrome','firefox','safari','client hints','userAgentData','os'],
   init(c) {
     c.innerHTML = '';
     const yourUa = navigator.userAgent;
@@ -3273,6 +3648,7 @@ MODULES.push({
   icon: '◆',
   category: 'Converters & Generators',
   desc: 'Convert colors between formats. Check WCAG contrast.',
+  keywords: ['color','colour','hex','rgb','hsl','oklch','oklab','wcag','contrast','accessibility','palette'],
   init(c) {
     c.innerHTML = '';
     const inputA = el('input', { type: 'text', placeholder: '#ff7a45 or rgb(255,122,69) or oklch(0.7 0.18 40)' });
@@ -3405,11 +3781,14 @@ MODULES.push({
   icon: 'ip',
   category: 'Converters & Generators',
   desc: 'IPv4 CIDR calculator. Network, broadcast, range, mask, binary.',
+  keywords: ['cidr','subnet','netmask','ipv4','ip','wildcard','rfc1918','private','mask','network','broadcast','expand'],
   init(c) {
     c.innerHTML = '';
     const input = el('input', { type: 'text', placeholder: '192.168.1.10/24' });
     input.value = store.get('subnet:input', '10.0.0.42/22');
     const out = el('div', { class: 'kv' });
+    const expandedWrap = el('pre', { class: 'pre-out' });
+    expandedWrap.style.display = 'none';
 
     function update() {
       out.innerHTML = '';
@@ -3460,11 +3839,33 @@ MODULES.push({
       }
     }
     input.addEventListener('input', update);
+    function expandRange() {
+      try {
+        const v = input.value.trim();
+        const [ipStr, prefStr] = v.split('/');
+        const prefix = parseInt(prefStr ?? '32', 10);
+        if (prefix < 20) { expandedWrap.textContent = '✗ refuse to expand /' + prefix + ' (too many addresses, > 4096 hosts)'; expandedWrap.style.display = 'block'; return; }
+        const ip = ipToInt(ipStr);
+        const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+        const network = (ip & mask) >>> 0;
+        const total = Math.pow(2, 32 - prefix);
+        const lines = [];
+        for (let i = 0; i < total; i++) lines.push(intToIp((network + i) >>> 0));
+        expandedWrap.textContent = lines.join('\n');
+        expandedWrap.style.display = 'block';
+      } catch (e) { expandedWrap.textContent = '✗ ' + e.message; expandedWrap.style.display = 'block'; }
+    }
     c.appendChild(el('div', { class: 'col' },
       el('div', { class: 'label' }, 'CIDR (IPv4)'),
       input,
       el('div', { class: 'label', style: 'margin-top:12px' }, 'Subnet'),
-      out
+      out,
+      el('div', { class: 'btn-row', style: 'margin-top:10px' },
+        el('button', { class: 'btn', onclick: expandRange }, 'Expand all IPs'),
+        el('button', { class: 'btn', onclick: () => { expandedWrap.style.display = 'none'; expandedWrap.textContent = ''; } }, 'Hide'),
+        el('button', { class: 'btn', onclick: () => copy(expandedWrap.textContent) }, 'Copy all')
+      ),
+      expandedWrap
     ));
     update();
   }
@@ -3570,6 +3971,7 @@ MODULES.push({
   icon: '◷',
   category: 'Converters & Generators',
   desc: 'Parse cron expressions. Plain-English description and next run times.',
+  keywords: ['cron','crontab','schedule','recurring','vixie','next run','timer'],
   init(c) {
     c.innerHTML = '';
     const input = el('input', { type: 'text', placeholder: '*/5 * * * *' });
@@ -3643,6 +4045,1018 @@ MODULES.push({
 });
 
 /* ============================================================
+   PHASE 5 — XML, Table, String Tools, TOTP, Password,
+               Number Base, chmod, QR, Unicode, MIME, HTTP Headers
+   ============================================================ */
+
+/* ---------- XML ---------- */
+MODULES.push({
+  id: 'xml',
+  name: 'XML',
+  icon: '<>',
+  category: 'Text & Data',
+  desc: 'Format, validate, and query XML with XPath.',
+  keywords: ['xml','soap','xpath','saml','rss','atom','maven','spring','pom','xslt'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste XML…' });
+    input.value = store.get('xml:input', '<?xml version="1.0" encoding="UTF-8"?>\n<library>\n  <book id="1"><title>Pattern Recognition</title><author>Gibson</author></book>\n  <book id="2"><title>Snow Crash</title><author>Stephenson</author></book>\n</library>');
+    const out = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+    const xpathInput = el('input', { type: 'text', placeholder: 'XPath e.g. //book/title' });
+    const xpathOut = el('pre', { class: 'pre-out' });
+
+    function parse() {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(input.value, 'application/xml');
+      const errNode = doc.querySelector('parsererror');
+      if (errNode) throw new Error(errNode.textContent.replace(/\s+/g, ' ').trim());
+      return doc;
+    }
+    function format() {
+      try {
+        const doc = parse();
+        out.textContent = prettyXml(doc.documentElement, 0);
+        status.textContent = '✓ valid · formatted';
+        status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    function minify() {
+      try {
+        const doc = parse();
+        out.textContent = new XMLSerializer().serializeToString(doc).replace(/>\s+</g, '><').trim();
+        status.textContent = '✓ minified';
+        status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    function prettyXml(node, indent) {
+      const pad = '  '.repeat(indent);
+      if (node.nodeType === 3) { // text
+        const t = node.textContent.trim();
+        return t ? pad + t + '\n' : '';
+      }
+      if (node.nodeType !== 1) return '';
+      let attrs = '';
+      for (const a of node.attributes) attrs += ' ' + a.name + '="' + a.value.replace(/"/g, '&quot;') + '"';
+      const kids = [...node.childNodes];
+      if (kids.length === 0) return pad + '<' + node.tagName + attrs + '/>\n';
+      // Single text child: inline
+      if (kids.length === 1 && kids[0].nodeType === 3) {
+        return pad + '<' + node.tagName + attrs + '>' + kids[0].textContent.trim() + '</' + node.tagName + '>\n';
+      }
+      let s = pad + '<' + node.tagName + attrs + '>\n';
+      kids.forEach(k => { s += prettyXml(k, indent + 1); });
+      s += pad + '</' + node.tagName + '>\n';
+      return s;
+    }
+    function runXPath() {
+      try {
+        const doc = parse();
+        const expr = xpathInput.value.trim();
+        if (!expr) { xpathOut.textContent = ''; return; }
+        const result = doc.evaluate(expr, doc, null, XPathResult.ANY_TYPE, null);
+        const lines = [];
+        if (result.resultType === XPathResult.NUMBER_TYPE) lines.push(String(result.numberValue));
+        else if (result.resultType === XPathResult.STRING_TYPE) lines.push(result.stringValue);
+        else if (result.resultType === XPathResult.BOOLEAN_TYPE) lines.push(String(result.booleanValue));
+        else {
+          let node;
+          while ((node = result.iterateNext())) {
+            lines.push(node.nodeType === 1 ? new XMLSerializer().serializeToString(node) : node.textContent);
+          }
+        }
+        xpathOut.textContent = lines.length ? lines.join('\n\n') : '(no matches)';
+      } catch (e) { xpathOut.textContent = '✗ ' + e.message; }
+    }
+    input.addEventListener('input', () => store.set('xml:input', input.value));
+    xpathInput.addEventListener('input', runXPath);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Input'),
+      input,
+      el('div', { class: 'btn-row' },
+        el('button', { class: 'btn btn-primary', onclick: format }, 'Format'),
+        el('button', { class: 'btn', onclick: minify }, 'Minify'),
+        el('button', { class: 'btn', onclick: () => copy(out.textContent) }, 'Copy'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Output'),
+      out,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'XPath query'),
+      xpathInput, xpathOut
+    ));
+    format();
+  }
+});
+
+/* ---------- Table Converter (MD/HTML/CSV/TSV, any-to-any via intermediate 2D array) ---------- */
+function detectTableFormat(src) {
+  const t = src.trim();
+  if (!t) return 'markdown';
+  if (/^\s*\|.*\|\s*$/m.test(t) && /^\s*\|?[\s:|-]+\|[\s:|-]+/m.test(t)) return 'markdown';
+  if (/<table[\s>]/i.test(t)) return 'html';
+  if (/\t/.test(t) && !/,/.test(t.split('\n')[0] || '')) return 'tsv';
+  return 'csv';
+}
+function parseTable(src, format) {
+  if (format === 'markdown') {
+    const lines = src.trim().split('\n').filter(l => l.trim());
+    // Drop the separator row
+    const rows = lines
+      .filter(l => !/^\s*\|?[\s:|-]+\|?[\s:|-]+\|?\s*$/.test(l))
+      .map(l => l.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim()));
+    return rows;
+  }
+  if (format === 'html') {
+    const doc = new DOMParser().parseFromString('<div>' + src + '</div>', 'text/html');
+    const rows = [];
+    doc.querySelectorAll('tr').forEach(tr => {
+      const row = [];
+      tr.querySelectorAll('th, td').forEach(cell => row.push(cell.textContent.trim()));
+      if (row.length) rows.push(row);
+    });
+    return rows;
+  }
+  if (format === 'csv' || format === 'tsv') {
+    const sep = format === 'tsv' ? '\t' : ',';
+    // Simple parser — respects double-quoted fields with embedded separator
+    const rows = [];
+    src.trim().split(/\r?\n/).forEach(line => {
+      const row = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (inQ) {
+          if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+          else if (c === '"') inQ = false;
+          else cur += c;
+        } else {
+          if (c === '"') inQ = true;
+          else if (c === sep) { row.push(cur); cur = ''; }
+          else cur += c;
+        }
+      }
+      row.push(cur);
+      rows.push(row);
+    });
+    return rows;
+  }
+  throw new Error('unknown format: ' + format);
+}
+function stringifyTable(rows, format) {
+  if (!rows.length) return '';
+  if (format === 'markdown') {
+    const widths = rows[0].map((_, i) => Math.max(...rows.map(r => String(r[i] ?? '').length)));
+    const fmt = r => '| ' + r.map((c, i) => String(c ?? '').padEnd(widths[i])).join(' | ') + ' |';
+    const sep = '| ' + widths.map(w => '-'.repeat(Math.max(3, w))).join(' | ') + ' |';
+    return [fmt(rows[0]), sep, ...rows.slice(1).map(fmt)].join('\n');
+  }
+  if (format === 'html') {
+    let s = '<table>\n  <thead>\n    <tr>' + rows[0].map(c => '<th>' + escapeHtml(c ?? '') + '</th>').join('') + '</tr>\n  </thead>\n  <tbody>\n';
+    rows.slice(1).forEach(r => { s += '    <tr>' + r.map(c => '<td>' + escapeHtml(c ?? '') + '</td>').join('') + '</tr>\n'; });
+    s += '  </tbody>\n</table>';
+    return s;
+  }
+  if (format === 'csv' || format === 'tsv') {
+    const sep = format === 'tsv' ? '\t' : ',';
+    return rows.map(r => r.map(c => {
+      const s = String(c ?? '');
+      return (format === 'csv' && /[",\n]/.test(s)) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(sep)).join('\n');
+  }
+}
+
+MODULES.push({
+  id: 'table',
+  name: 'Table',
+  icon: '⊞',
+  category: 'Text & Data',
+  desc: 'Convert between Markdown, HTML, CSV, and TSV tables.',
+  keywords: ['table','markdown','html','csv','tsv','convert','row','column'],
+  init(c) {
+    c.innerHTML = '';
+    const srcSel = el('select');
+    const dstSel = el('select');
+    const formats = { markdown: 'Markdown', html: 'HTML', csv: 'CSV', tsv: 'TSV' };
+    Object.entries(formats).forEach(([k, v]) => {
+      srcSel.appendChild(el('option', { value: k }, v));
+      dstSel.appendChild(el('option', { value: k }, v));
+    });
+    srcSel.value = store.get('table:src', 'markdown');
+    dstSel.value = store.get('table:dst', 'csv');
+    const inTa = el('textarea', { spellcheck: 'false', placeholder: 'Paste a table…' });
+    inTa.value = store.get('table:input', '| Name  | Role  | City  |\n| ----- | ----- | ----- |\n| Alice | Eng   | NYC   |\n| Bob   | PM    | SF    |\n| Carol | Ops   | LA    |');
+    const outTa = el('textarea', { spellcheck: 'false', placeholder: 'Output…' });
+    const status = el('div', { class: 'status' });
+    const detectBtn = el('button', { class: 'btn' }, 'Detect format');
+
+    function run() {
+      try {
+        const rows = parseTable(inTa.value, srcSel.value);
+        outTa.value = stringifyTable(rows, dstSel.value);
+        status.textContent = '✓ ' + rows.length + ' rows · ' + (rows[0]?.length || 0) + ' cols';
+        status.className = 'status ok';
+        store.set('table:input', inTa.value);
+        store.set('table:src', srcSel.value);
+        store.set('table:dst', dstSel.value);
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    inTa.addEventListener('input', run);
+    srcSel.addEventListener('change', run);
+    dstSel.addEventListener('change', run);
+    detectBtn.onclick = () => { srcSel.value = detectTableFormat(inTa.value); run(); };
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'row' },
+        el('div', { class: 'col' },
+          el('div', { class: 'btn-row' }, el('div', { class: 'label' }, 'Source'), srcSel, detectBtn),
+          inTa
+        ),
+        el('div', { class: 'col' },
+          el('div', { class: 'btn-row' }, el('div', { class: 'label' }, 'Target'), dstSel),
+          outTa
+        )
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        el('button', { class: 'btn btn-primary', onclick: run }, 'Convert'),
+        el('button', { class: 'btn', onclick: () => { const s = srcSel.value; srcSel.value = dstSel.value; dstSel.value = s; const t = inTa.value; inTa.value = outTa.value; outTa.value = t; run(); } }, 'Swap'),
+        el('button', { class: 'btn', onclick: () => copy(outTa.value) }, 'Copy target'),
+        el('span', { class: 'spacer' }), status
+      )
+    ));
+    run();
+  }
+});
+
+/* ---------- String Tools ---------- */
+function stringTools(src) {
+  const s = src || '';
+  // Split into words for case conversion — handle camelCase, snake_case, kebab-case, spaces
+  const words = s
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .split(/[\s_\-.]+/)
+    .filter(Boolean);
+  const lower = w => w.toLowerCase();
+  const upper = w => w.toUpperCase();
+  const title = w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '';
+  return {
+    camelCase: words.map((w, i) => i === 0 ? lower(w) : title(w)).join(''),
+    PascalCase: words.map(title).join(''),
+    snake_case: words.map(lower).join('_'),
+    SCREAMING_SNAKE: words.map(upper).join('_'),
+    'kebab-case': words.map(lower).join('-'),
+    'dot.case': words.map(lower).join('.'),
+    'Title Case': words.map(title).join(' '),
+    UPPERCASE: s.toUpperCase(),
+    lowercase: s.toLowerCase(),
+    reversed: [...s].reverse().join(''),
+    slug: s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-'),
+    'HTML escaped': escapeHtml(s),
+    'whitespace collapsed': s.replace(/\s+/g, ' ').trim(),
+  };
+}
+
+MODULES.push({
+  id: 'string',
+  name: 'String Tools',
+  icon: 'ab',
+  category: 'Text & Data',
+  desc: 'Case conversion, slugify, HTML escape, counts.',
+  keywords: ['string','case','camel','snake','kebab','pascal','slugify','slug','html','escape','whitespace','count','word','char','reverse','upper','lower','title'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste text…' });
+    input.value = store.get('string:input', 'Hello World from BOFH');
+    const out = el('div', { class: 'kv' });
+    const counts = el('div', { class: 'kv' });
+    function update() {
+      out.innerHTML = '';
+      const tools = stringTools(input.value);
+      Object.entries(tools).forEach(([k, v]) => {
+        out.appendChild(el('div', { class: 'k' }, k));
+        const vd = el('div', { class: 'v' }, v || '(empty)');
+        vd.style.cursor = 'pointer'; vd.title = 'Click to copy';
+        vd.onclick = () => copy(v);
+        out.appendChild(vd);
+      });
+      counts.innerHTML = '';
+      const s = input.value;
+      const bytes = new TextEncoder().encode(s).length;
+      const rows = [
+        ['chars', s.length],
+        ['chars (no spaces)', s.replace(/\s/g, '').length],
+        ['words', (s.trim().match(/\S+/g) || []).length],
+        ['lines', s ? s.split('\n').length : 0],
+        ['bytes (UTF-8)', bytes],
+      ];
+      rows.forEach(([k, v]) => {
+        counts.appendChild(el('div', { class: 'k' }, k));
+        counts.appendChild(el('div', { class: 'v' }, String(v)));
+      });
+      store.set('string:input', s);
+    }
+    input.addEventListener('input', update);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Input'),
+      input,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Counts'),
+      counts,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Conversions (click to copy)'),
+      out
+    ));
+    update();
+  }
+});
+
+/* ---------- TOTP (RFC 6238) ---------- */
+function base32Decode(s) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  s = s.replace(/=+$/, '').replace(/\s+/g, '').toUpperCase();
+  const bytes = [];
+  let buffer = 0, bits = 0;
+  for (const ch of s) {
+    const val = alphabet.indexOf(ch);
+    if (val < 0) throw new Error('invalid base32 character: "' + ch + '"');
+    buffer = (buffer << 5) | val;
+    bits += 5;
+    if (bits >= 8) { bits -= 8; bytes.push((buffer >> bits) & 0xff); }
+  }
+  return new Uint8Array(bytes);
+}
+async function totpGenerate(secret, time, period = 30, digits = 6) {
+  const keyBytes = base32Decode(secret);
+  let counter = Math.floor(time / 1000 / period);
+  const counterBytes = new Uint8Array(8);
+  for (let i = 7; i >= 0; i--) { counterBytes[i] = counter & 0xff; counter = Math.floor(counter / 256); }
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+  const hmac = new Uint8Array(await crypto.subtle.sign('HMAC', key, counterBytes));
+  const offset = hmac[hmac.length - 1] & 0xf;
+  const code = ((hmac[offset] & 0x7f) << 24) | (hmac[offset+1] << 16) | (hmac[offset+2] << 8) | hmac[offset+3];
+  return (code % Math.pow(10, digits)).toString().padStart(digits, '0');
+}
+
+MODULES.push({
+  id: 'totp',
+  name: 'TOTP',
+  icon: '⏲',
+  category: 'Crypto & Security',
+  desc: 'RFC 6238 time-based one-time passwords. For testing your own 2FA.',
+  keywords: ['totp','2fa','mfa','two factor','authenticator','otp','rfc 6238','google authenticator','base32'],
+  init(c) {
+    c.innerHTML = '';
+    const secretInput = el('input', { type: 'text', placeholder: 'Base32 secret (e.g. JBSWY3DPEHPK3PXP)' });
+    secretInput.value = store.get('totp:secret', 'JBSWY3DPEHPK3PXP');
+    const codeOut = el('div', { style: 'font-family:var(--mono);font-size:42px;font-weight:700;color:var(--accent);text-align:center;padding:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;letter-spacing:0.15em' });
+    const remaining = el('div', { class: 'status' });
+    const status = el('div', { class: 'status' });
+
+    let timer = null;
+    async function tick() {
+      try {
+        if (!secretInput.value.trim()) { codeOut.textContent = '—'; remaining.textContent = ''; return; }
+        const code = await totpGenerate(secretInput.value.trim(), Date.now());
+        // format as e.g. "123 456"
+        codeOut.textContent = code.slice(0, 3) + ' ' + code.slice(3);
+        const secs = 30 - Math.floor((Date.now() / 1000) % 30);
+        remaining.textContent = 'expires in ' + secs + 's';
+        remaining.className = 'status ' + (secs <= 5 ? 'warn' : 'ok');
+        status.textContent = '✓ valid secret';
+        status.className = 'status ok';
+      } catch (e) {
+        codeOut.textContent = '—';
+        remaining.textContent = '';
+        status.textContent = '✗ ' + e.message;
+        status.className = 'status err';
+      }
+    }
+    secretInput.addEventListener('input', () => { store.set('totp:secret', secretInput.value); tick(); });
+    tick();
+    timer = setInterval(tick, 1000);
+    // Clean up when the module's container is hidden — we rely on reinit to reset; no destroy hook yet
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Base32 secret'),
+      secretInput,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Current code'),
+      codeOut,
+      el('div', { class: 'btn-row', style: 'margin-top:6px' },
+        el('button', { class: 'btn', onclick: () => copy(codeOut.textContent.replace(/\s/g, '')) }, 'Copy code'),
+        el('span', { class: 'spacer' }), remaining, status
+      ),
+      el('div', { style: 'margin-top:12px;font-size:12px;color:var(--text-faint);line-height:1.55' },
+        'TOTP computes the code as ',
+        el('code', {}, 'HMAC-SHA1(secret, ⌊time / 30⌋)'),
+        ' truncated to 6 digits. Intended for testing your own 2FA implementations — not a replacement for an authenticator app.'
+      )
+    ));
+  }
+});
+
+/* ---------- Password Generator ---------- */
+const PW_CHARSETS = {
+  lower: 'abcdefghijklmnopqrstuvwxyz',
+  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  digits: '0123456789',
+  symbols: '!@#$%^&*()-_=+[]{};:,.<>?/~',
+};
+
+MODULES.push({
+  id: 'password',
+  name: 'Password',
+  icon: '⚿',
+  category: 'Crypto & Security',
+  desc: 'Cryptographically random passwords. crypto.getRandomValues.',
+  keywords: ['password','passphrase','random','crypto','secret','generator','entropy'],
+  init(c) {
+    c.innerHTML = '';
+    const lengthInput = el('input', { type: 'number', value: '20', min: '4', max: '128', style: 'max-width:100px' });
+    const countInput = el('input', { type: 'number', value: '10', min: '1', max: '100', style: 'max-width:100px' });
+    const includeLower = el('input', { type: 'checkbox' }); includeLower.checked = true;
+    const includeUpper = el('input', { type: 'checkbox' }); includeUpper.checked = true;
+    const includeDigits = el('input', { type: 'checkbox' }); includeDigits.checked = true;
+    const includeSymbols = el('input', { type: 'checkbox' }); includeSymbols.checked = true;
+    const excludeAmbig = el('input', { type: 'checkbox' });
+    const out = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+
+    function generate() {
+      let charset = '';
+      if (includeLower.checked) charset += PW_CHARSETS.lower;
+      if (includeUpper.checked) charset += PW_CHARSETS.upper;
+      if (includeDigits.checked) charset += PW_CHARSETS.digits;
+      if (includeSymbols.checked) charset += PW_CHARSETS.symbols;
+      if (excludeAmbig.checked) charset = charset.replace(/[0OIl1|`']/g, '');
+      if (!charset) { status.textContent = '✗ pick at least one charset'; status.className = 'status err'; return; }
+      const n = parseInt(countInput.value, 10) || 1;
+      const len = parseInt(lengthInput.value, 10) || 20;
+      const rows = [];
+      for (let i = 0; i < n; i++) {
+        const bytes = new Uint32Array(len);
+        crypto.getRandomValues(bytes);
+        let s = '';
+        for (let j = 0; j < len; j++) s += charset[bytes[j] % charset.length];
+        rows.push(s);
+      }
+      out.textContent = rows.join('\n');
+      const entropy = len * Math.log2(charset.length);
+      status.textContent = '✓ ' + n + ' × ' + len + ' chars · ' + Math.round(entropy) + ' bits of entropy · charset ' + charset.length;
+      status.className = 'status ok';
+    }
+    [lengthInput, countInput, includeLower, includeUpper, includeDigits, includeSymbols, excludeAmbig]
+      .forEach(el => el.addEventListener('change', generate));
+    lengthInput.addEventListener('input', generate);
+    countInput.addEventListener('input', generate);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Length'), lengthInput,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Count'), countInput,
+        el('button', { class: 'btn btn-primary', onclick: generate }, 'Generate'),
+        el('button', { class: 'btn', onclick: () => copy(out.textContent) }, 'Copy all')
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:6px;gap:12px;flex-wrap:wrap' },
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px;color:var(--text-dim)' }, includeLower, 'lower'),
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px;color:var(--text-dim)' }, includeUpper, 'UPPER'),
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px;color:var(--text-dim)' }, includeDigits, '0-9'),
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px;color:var(--text-dim)' }, includeSymbols, 'symbols'),
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px;color:var(--text-dim);margin-left:14px' }, excludeAmbig, 'exclude ambiguous (0Ol1|`\')'),
+      ),
+      out, status
+    ));
+    generate();
+  }
+});
+
+/* ---------- Number Base ---------- */
+MODULES.push({
+  id: 'numbase',
+  name: 'Number Base',
+  icon: '0b',
+  category: 'Converters & Generators',
+  desc: 'Decimal / hex / octal / binary converter with bit widths.',
+  keywords: ['number','base','hex','hexadecimal','binary','octal','decimal','radix','bits','bitwise','twos complement'],
+  init(c) {
+    c.innerHTML = '';
+    const widthSel = el('select');
+    [8, 16, 32, 64].forEach(w => widthSel.appendChild(el('option', { value: String(w) }, w + '-bit')));
+    widthSel.value = store.get('numbase:width', '32');
+
+    function mkRow(label, base, placeholder) {
+      const input = el('input', { type: 'text', placeholder });
+      return { label, base, input };
+    }
+    const dec = mkRow('Decimal', 10, '42');
+    const hex = mkRow('Hex', 16, '0x2a or 2a');
+    const oct = mkRow('Octal', 8, '52');
+    const bin = mkRow('Binary', 2, '101010');
+    const rows = [dec, hex, oct, bin];
+
+    const info = el('div', { class: 'kv' });
+    let currentValue = 42n;
+
+    function updateAll() {
+      const width = parseInt(widthSel.value, 10);
+      const max = (1n << BigInt(width)) - 1n;
+      const v = currentValue & max; // mask to width
+      dec.input.value = v.toString(10);
+      hex.input.value = '0x' + v.toString(16);
+      oct.input.value = '0o' + v.toString(8);
+      bin.input.value = '0b' + v.toString(2).padStart(width, '0');
+      info.innerHTML = '';
+      // Two's complement signed value
+      const signed = v >> BigInt(width - 1) ? v - (1n << BigInt(width)) : v;
+      const rowsInfo = [
+        ['width', width + '-bit'],
+        ['unsigned', v.toString(10)],
+        ['signed (two\'s complement)', signed.toString(10)],
+        ['bit count', v.toString(2).replace(/0/g, '').length + ' set'],
+        ['hex (padded)', v.toString(16).padStart(width/4, '0')],
+      ];
+      rowsInfo.forEach(([k, v]) => {
+        info.appendChild(el('div', { class: 'k' }, k));
+        info.appendChild(el('div', { class: 'v' }, String(v)));
+      });
+      store.set('numbase:value', v.toString());
+      store.set('numbase:width', String(width));
+    }
+    function parseFrom(source) {
+      return (e) => {
+        try {
+          let v = e.target.value.trim().replace(/[_\s]/g, '');
+          if (!v) return;
+          if (source === 16 && v.startsWith('0x')) v = v.slice(2);
+          if (source === 8 && v.startsWith('0o')) v = v.slice(2);
+          if (source === 2 && v.startsWith('0b')) v = v.slice(2);
+          currentValue = BigInt(source === 10 ? v : '0' + (source === 16 ? 'x' : source === 8 ? 'o' : 'b') + v);
+          updateAll();
+        } catch { /* ignore invalid mid-type */ }
+      };
+    }
+    rows.forEach(r => r.input.addEventListener('input', parseFrom(r.base)));
+    widthSel.addEventListener('change', updateAll);
+
+    // Restore
+    const saved = store.get('numbase:value', '42');
+    try { currentValue = BigInt(saved); } catch { currentValue = 42n; }
+
+    const form = el('div', { class: 'col' },
+      el('div', { class: 'btn-row' }, el('div', { class: 'label' }, 'Width'), widthSel),
+      ...rows.map(r => el('div', { class: 'col', style: 'margin-top:4px' },
+        el('div', { class: 'label' }, r.label),
+        r.input
+      )),
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Info'),
+      info
+    );
+    c.appendChild(form);
+    updateAll();
+  }
+});
+
+/* ---------- chmod ---------- */
+MODULES.push({
+  id: 'chmod',
+  name: 'chmod',
+  icon: '0x',
+  category: 'Converters & Generators',
+  desc: 'Unix file permissions. Click the grid, get octal + symbolic.',
+  keywords: ['chmod','unix','linux','permissions','octal','symbolic','rwx','755','644','file','mode'],
+  init(c) {
+    c.innerHTML = '';
+    const state = store.getJSON('chmod:state', { ur:1, uw:1, ux:1, gr:1, gw:0, gx:1, or:1, ow:0, ox:1 });
+    const boxes = {};
+    const octalOut = el('div', { class: 'chmod-out' });
+
+    function update() {
+      const u = (state.ur ? 4 : 0) + (state.uw ? 2 : 0) + (state.ux ? 1 : 0);
+      const g = (state.gr ? 4 : 0) + (state.gw ? 2 : 0) + (state.gx ? 1 : 0);
+      const o = (state.or ? 4 : 0) + (state.ow ? 2 : 0) + (state.ox ? 1 : 0);
+      const oct = '' + u + g + o;
+      const sym = (state.ur?'r':'-') + (state.uw?'w':'-') + (state.ux?'x':'-')
+                + (state.gr?'r':'-') + (state.gw?'w':'-') + (state.gx?'x':'-')
+                + (state.or?'r':'-') + (state.ow?'w':'-') + (state.ox?'x':'-');
+      octalOut.textContent = '0' + oct + '   ·   ' + sym;
+      store.setJSON('chmod:state', state);
+    }
+    function mkBox(key) {
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = !!state[key];
+      cb.addEventListener('change', () => { state[key] = cb.checked ? 1 : 0; update(); });
+      boxes[key] = cb;
+      return cb;
+    }
+    const grid = el('div', { class: 'chmod-grid' },
+      el('div', { class: 'chmod-head' }, ''),
+      el('div', { class: 'chmod-head' }, 'Read'),
+      el('div', { class: 'chmod-head' }, 'Write'),
+      el('div', { class: 'chmod-head' }, 'Execute'),
+      el('div', {}, 'User'),
+      el('label', {}, mkBox('ur'), 'r'),
+      el('label', {}, mkBox('uw'), 'w'),
+      el('label', {}, mkBox('ux'), 'x'),
+      el('div', {}, 'Group'),
+      el('label', {}, mkBox('gr'), 'r'),
+      el('label', {}, mkBox('gw'), 'w'),
+      el('label', {}, mkBox('gx'), 'x'),
+      el('div', {}, 'Other'),
+      el('label', {}, mkBox('or'), 'r'),
+      el('label', {}, mkBox('ow'), 'w'),
+      el('label', {}, mkBox('ox'), 'x'),
+    );
+
+    // Presets
+    const presets = [
+      ['0644', { ur:1, uw:1, ux:0, gr:1, gw:0, gx:0, or:1, ow:0, ox:0 }],
+      ['0755', { ur:1, uw:1, ux:1, gr:1, gw:0, gx:1, or:1, ow:0, ox:1 }],
+      ['0600', { ur:1, uw:1, ux:0, gr:0, gw:0, gx:0, or:0, ow:0, ox:0 }],
+      ['0777', { ur:1, uw:1, ux:1, gr:1, gw:1, gx:1, or:1, ow:1, ox:1 }],
+    ];
+    const presetRow = el('div', { class: 'btn-row' }, el('div', { class: 'label' }, 'Presets'));
+    presets.forEach(([name, s]) => {
+      presetRow.appendChild(el('button', { class: 'btn', onclick: () => {
+        Object.assign(state, s);
+        Object.keys(boxes).forEach(k => boxes[k].checked = !!state[k]);
+        update();
+      } }, name));
+    });
+
+    c.appendChild(el('div', { class: 'col' },
+      grid,
+      el('div', { class: 'label', style: 'margin-top:12px' }, 'Result'),
+      octalOut,
+      el('div', { class: 'btn-row', style: 'margin-top:8px' }, presetRow,
+        el('span', { class: 'spacer' }),
+        el('button', { class: 'btn', onclick: () => copy(octalOut.textContent.split('·')[0].trim()) }, 'Copy octal'),
+        el('button', { class: 'btn', onclick: () => copy(octalOut.textContent.split('·')[1].trim()) }, 'Copy symbolic')
+      )
+    ));
+    update();
+  }
+});
+
+/* ---------- QR Code ---------- */
+const QR_CDN = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+
+MODULES.push({
+  id: 'qr',
+  name: 'QR Code',
+  icon: 'qr',
+  category: 'Converters & Generators',
+  desc: 'Text → QR code. Download as PNG or SVG. Runs in-browser.',
+  keywords: ['qr','qrcode','2d barcode','download','png','svg','wifi','url'],
+  async init(c) {
+    c.innerHTML = '';
+    const badge = el('div', { class: 'loading-badge' }, 'Loading qrcode-generator…');
+    c.appendChild(badge);
+    try { await loadScript(QR_CDN); } catch (e) { badge.textContent = '✗ ' + e.message; return; }
+    badge.remove();
+
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste a URL, text, or Wi-Fi string…' });
+    input.value = store.get('qr:input', 'https://bofh.naklitechie.com');
+    const ecSel = el('select');
+    [['L','Low (~7%)'],['M','Medium (~15%)'],['Q','Quartile (~25%)'],['H','High (~30%)']].forEach(([v,t]) => ecSel.appendChild(el('option', { value: v }, t)));
+    ecSel.value = store.get('qr:ec', 'M');
+    const sizeSel = el('select');
+    [4, 5, 6, 8, 10, 12].forEach(s => sizeSel.appendChild(el('option', { value: String(s) }, s + 'px/cell')));
+    sizeSel.value = store.get('qr:size', '6');
+    const status = el('div', { class: 'status' });
+    const wrap = el('div', { class: 'qr-wrap' });
+    const wrapOuter = el('div', { style: 'padding:8px 0' }, wrap);
+
+    function render() {
+      wrap.innerHTML = '';
+      try {
+        const qr = qrcode(0, ecSel.value);
+        qr.addData(input.value);
+        qr.make();
+        const cellSize = parseInt(sizeSel.value, 10);
+        wrap.innerHTML = qr.createImgTag(cellSize, 8);
+        status.textContent = '✓ ' + qr.getModuleCount() + '×' + qr.getModuleCount() + ' modules';
+        status.className = 'status ok';
+        store.set('qr:input', input.value);
+        store.set('qr:ec', ecSel.value);
+        store.set('qr:size', sizeSel.value);
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    input.addEventListener('input', render);
+    ecSel.addEventListener('change', render);
+    sizeSel.addEventListener('change', render);
+
+    function download() {
+      const img = wrap.querySelector('img');
+      if (!img) return;
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = 'qr.gif';
+      a.click();
+    }
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Text / URL'),
+      input,
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Error correction'), ecSel,
+        el('div', { class: 'label', style: 'margin-left:10px' }, 'Size'), sizeSel,
+        el('button', { class: 'btn btn-primary', onclick: render }, 'Render'),
+        el('button', { class: 'btn', onclick: download }, 'Download'),
+        el('span', { class: 'spacer' }), status
+      ),
+      wrapOuter
+    ));
+    render();
+  }
+});
+
+/* ---------- Unicode Inspector ---------- */
+const UNICODE_CATEGORIES = {
+  'Ll': 'Lowercase Letter', 'Lu': 'Uppercase Letter', 'Lt': 'Titlecase Letter',
+  'Lm': 'Modifier Letter', 'Lo': 'Other Letter',
+  'Mn': 'Non-Spacing Mark', 'Mc': 'Spacing Mark', 'Me': 'Enclosing Mark',
+  'Nd': 'Decimal Digit', 'Nl': 'Letter Number', 'No': 'Other Number',
+  'Pc': 'Connector Punctuation', 'Pd': 'Dash Punctuation',
+  'Ps': 'Open Punctuation', 'Pe': 'Close Punctuation',
+  'Pi': 'Initial Quote', 'Pf': 'Final Quote', 'Po': 'Other Punctuation',
+  'Sm': 'Math Symbol', 'Sc': 'Currency Symbol', 'Sk': 'Modifier Symbol', 'So': 'Other Symbol',
+  'Zs': 'Space Separator', 'Zl': 'Line Separator', 'Zp': 'Paragraph Separator',
+  'Cc': 'Control', 'Cf': 'Format', 'Cs': 'Surrogate', 'Co': 'Private Use', 'Cn': 'Unassigned',
+};
+function unicodeCategory(char) {
+  // Use the built-in \p{...} regex categories (ES2018+)
+  for (const [code, name] of Object.entries(UNICODE_CATEGORIES)) {
+    try {
+      if (new RegExp('\\p{gc=' + code + '}', 'u').test(char)) return { code, name };
+    } catch {}
+  }
+  return { code: '?', name: 'Unknown' };
+}
+const SUSPICIOUS_CODEPOINTS = new Set([
+  0x00A0, // NBSP
+  0x200B, 0x200C, 0x200D, 0x200E, 0x200F, // ZW*
+  0x2028, 0x2029, // line/paragraph separators
+  0x202A, 0x202B, 0x202C, 0x202D, 0x202E, // bidi overrides
+  0x2066, 0x2067, 0x2068, 0x2069, // bidi isolates
+  0xFEFF, // BOM
+  0x180E, 0x061C,
+]);
+
+MODULES.push({
+  id: 'unicode',
+  name: 'Unicode',
+  icon: 'uu',
+  category: 'Converters & Generators',
+  desc: 'Inspect each character: codepoint, category, suspicious/invisible flags.',
+  keywords: ['unicode','codepoint','utf','utf-8','character','homoglyph','invisible','zero width','bom','category','emoji'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste text to inspect…', style: 'min-height:100px' });
+    input.value = store.get('unicode:input', 'Hello\u00A0world\u200B!');
+    const status = el('div', { class: 'status' });
+    const wrap = el('div', { style: 'max-height:500px;overflow:auto;border:1px solid var(--border);border-radius:5px' });
+    const table = el('table', { class: 'uni-table' });
+    wrap.appendChild(table);
+
+    function render() {
+      table.innerHTML = '';
+      const thead = el('thead');
+      thead.appendChild(el('tr', {},
+        el('th', {}, '#'),
+        el('th', {}, 'Char'),
+        el('th', {}, 'Codepoint'),
+        el('th', {}, 'UTF-8'),
+        el('th', {}, 'Category'),
+        el('th', {}, 'Name')
+      ));
+      table.appendChild(thead);
+      const tbody = el('tbody');
+      const chars = [...input.value];
+      let suspiciousCount = 0;
+      chars.forEach((ch, i) => {
+        const cp = ch.codePointAt(0);
+        const hex = '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
+        const utf8 = [...new TextEncoder().encode(ch)].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+        const cat = unicodeCategory(ch);
+        const suspicious = SUSPICIOUS_CODEPOINTS.has(cp) || cat.code === 'Cf' || cat.code === 'Cc' || (cat.code === 'Zs' && cp !== 0x20);
+        if (suspicious) suspiciousCount++;
+        const tr = el('tr', suspicious ? { class: 'suspicious' } : {});
+        tr.appendChild(el('td', {}, String(i)));
+        tr.appendChild(el('td', { class: 'char' }, cat.code === 'Cc' ? '·' : ch));
+        tr.appendChild(el('td', { class: 'cp' }, hex));
+        tr.appendChild(el('td', {}, utf8));
+        tr.appendChild(el('td', {}, cat.code));
+        tr.appendChild(el('td', {}, cat.name));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      status.textContent = chars.length + ' chars' + (suspiciousCount ? ' · ⚠ ' + suspiciousCount + ' suspicious' : '');
+      status.className = 'status ' + (suspiciousCount ? 'warn' : 'ok');
+      store.set('unicode:input', input.value);
+    }
+    input.addEventListener('input', render);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Input'),
+      input,
+      el('div', { class: 'btn-row' }, status),
+      wrap
+    ));
+    render();
+  }
+});
+
+/* ---------- MIME Types ---------- */
+const MIME_TYPES = [
+  ['text/plain', '.txt', 'Plain text'],
+  ['text/html', '.html .htm', 'HTML document'],
+  ['text/css', '.css', 'Cascading Style Sheets'],
+  ['text/csv', '.csv', 'Comma-separated values'],
+  ['text/markdown', '.md .markdown', 'Markdown'],
+  ['text/xml', '.xml', 'Text XML'],
+  ['text/yaml', '.yaml .yml', 'YAML'],
+  ['application/json', '.json', 'JSON'],
+  ['application/ld+json', '.jsonld', 'JSON-LD'],
+  ['application/xml', '.xml', 'XML'],
+  ['application/javascript', '.js', 'JavaScript (legacy)'],
+  ['application/ecmascript', '.es', 'ECMAScript'],
+  ['application/octet-stream', '.bin', 'Arbitrary binary data'],
+  ['application/pdf', '.pdf', 'Portable Document Format'],
+  ['application/zip', '.zip', 'ZIP archive'],
+  ['application/gzip', '.gz .gzip', 'gzip archive'],
+  ['application/x-tar', '.tar', 'tar archive'],
+  ['application/x-7z-compressed', '.7z', '7-Zip archive'],
+  ['application/vnd.ms-excel', '.xls', 'Microsoft Excel (legacy)'],
+  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.xlsx', 'Microsoft Excel'],
+  ['application/msword', '.doc', 'Microsoft Word (legacy)'],
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx', 'Microsoft Word'],
+  ['application/vnd.openxmlformats-officedocument.presentationml.presentation', '.pptx', 'Microsoft PowerPoint'],
+  ['application/x-www-form-urlencoded', '(form body)', 'URL-encoded form'],
+  ['multipart/form-data', '(form body)', 'Multipart form data'],
+  ['multipart/mixed', '(email)', 'Multipart mixed'],
+  ['application/graphql', '.graphql', 'GraphQL query'],
+  ['application/wasm', '.wasm', 'WebAssembly'],
+  ['application/manifest+json', '.webmanifest', 'Web App Manifest'],
+  ['application/x-yaml', '.yaml', 'YAML (legacy)'],
+  ['application/rss+xml', '.rss', 'RSS feed'],
+  ['application/atom+xml', '.atom', 'Atom feed'],
+  ['image/jpeg', '.jpg .jpeg', 'JPEG image'],
+  ['image/png', '.png', 'PNG image'],
+  ['image/gif', '.gif', 'GIF image'],
+  ['image/webp', '.webp', 'WebP image'],
+  ['image/svg+xml', '.svg', 'SVG vector image'],
+  ['image/avif', '.avif', 'AVIF image'],
+  ['image/heic', '.heic', 'HEIC image'],
+  ['image/bmp', '.bmp', 'Bitmap image'],
+  ['image/vnd.microsoft.icon', '.ico', 'Icon'],
+  ['image/tiff', '.tiff .tif', 'TIFF image'],
+  ['audio/mpeg', '.mp3', 'MP3 audio'],
+  ['audio/ogg', '.ogg .oga', 'Ogg audio'],
+  ['audio/wav', '.wav', 'WAV audio'],
+  ['audio/webm', '.weba', 'WebM audio'],
+  ['audio/flac', '.flac', 'FLAC lossless audio'],
+  ['audio/aac', '.aac', 'AAC audio'],
+  ['video/mp4', '.mp4 .m4v', 'MP4 video'],
+  ['video/webm', '.webm', 'WebM video'],
+  ['video/quicktime', '.mov', 'QuickTime video'],
+  ['video/x-matroska', '.mkv', 'Matroska video'],
+  ['font/woff', '.woff', 'Web Open Font Format'],
+  ['font/woff2', '.woff2', 'Web Open Font Format 2'],
+  ['font/ttf', '.ttf', 'TrueType font'],
+  ['font/otf', '.otf', 'OpenType font'],
+];
+
+MODULES.push({
+  id: 'mime',
+  name: 'MIME Types',
+  icon: 'mt',
+  category: 'Reference',
+  desc: 'Searchable MIME type ↔ extension reference.',
+  keywords: ['mime','content-type','media type','extension','file type'],
+  init(c) {
+    c.innerHTML = '';
+    const search = el('input', { type: 'text', placeholder: 'Search MIME type or extension…' });
+    search.value = store.get('mime:q', '');
+    const list = el('div', { class: 'ref-list' });
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      list.innerHTML = '';
+      const filtered = MIME_TYPES.filter(([mime, ext, desc]) =>
+        !q || mime.toLowerCase().includes(q) || ext.toLowerCase().includes(q) || desc.toLowerCase().includes(q));
+      if (!filtered.length) { list.appendChild(el('div', { class: 'ref-empty' }, 'No matches')); return; }
+      filtered.forEach(([mime, ext, desc]) => {
+        const card = el('div', { class: 'ref-card' });
+        card.appendChild(el('div', { class: 'head' },
+          el('span', { class: 'code', style: 'font-size:13px' }, mime),
+          el('span', { class: 'name', style: 'font-family:var(--mono);color:var(--text-dim)' }, ext)
+        ));
+        card.appendChild(el('div', { class: 'desc' }, desc));
+        card.onclick = () => copy(mime);
+        card.style.cursor = 'pointer';
+        card.title = 'Click to copy MIME type';
+        list.appendChild(card);
+      });
+      store.set('mime:q', search.value);
+    }
+    search.addEventListener('input', render);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Filter'),
+      search,
+      list
+    ));
+    render();
+  }
+});
+
+/* ---------- HTTP Headers ---------- */
+const HTTP_HEADERS = [
+  // Request
+  ['req', 'Accept', 'Media types the client can understand. e.g. application/json'],
+  ['req', 'Accept-Encoding', 'Compression algorithms the client can handle. gzip, br, deflate.'],
+  ['req', 'Accept-Language', 'Preferred response languages.'],
+  ['req', 'Authorization', 'Auth credentials. Bearer <token>, Basic <base64>, etc.'],
+  ['req', 'Cache-Control', 'Caching directives. no-cache, no-store, max-age=N.'],
+  ['req', 'Cookie', 'Cookies previously set by the server.'],
+  ['req', 'Host', 'Target host (required in HTTP/1.1).'],
+  ['req', 'If-Match', 'Conditional request — only act if ETag matches.'],
+  ['req', 'If-None-Match', 'Conditional request — only act if ETag does NOT match. Used with 304 Not Modified.'],
+  ['req', 'If-Modified-Since', 'Conditional request by date.'],
+  ['req', 'Origin', 'Where the request is coming from (scheme + host + port). Used in CORS.'],
+  ['req', 'Range', 'Request a specific byte range. Used for resume-downloads and video seeking.'],
+  ['req', 'Referer', 'URL of the page making the request. Often misspelled intentionally.'],
+  ['req', 'User-Agent', 'Client identifier string.'],
+  ['req', 'X-Forwarded-For', 'Client IP when behind a proxy.'],
+  ['req', 'X-Requested-With', 'Identifies XHR/fetch (usually "XMLHttpRequest"). Sometimes checked for CSRF mitigation.'],
+  // Response
+  ['res', 'Access-Control-Allow-Origin', 'CORS: who can access this resource. * or specific origin.'],
+  ['res', 'Access-Control-Allow-Credentials', 'CORS: whether to allow cookies/auth with cross-origin requests.'],
+  ['res', 'Access-Control-Allow-Methods', 'CORS preflight: allowed methods.'],
+  ['res', 'Access-Control-Allow-Headers', 'CORS preflight: allowed request headers.'],
+  ['res', 'Access-Control-Max-Age', 'CORS preflight: how long to cache the preflight result.'],
+  ['res', 'Cache-Control', 'Caching directives. public, private, no-store, max-age=N, s-maxage=N.'],
+  ['res', 'Content-Disposition', 'How to display: inline or attachment; filename="…"'],
+  ['res', 'Content-Encoding', 'Compression applied to the body. gzip, br, deflate.'],
+  ['res', 'Content-Length', 'Body size in bytes.'],
+  ['res', 'Content-Security-Policy', 'Restricts where resources can load from. Biggest lever for XSS mitigation.'],
+  ['res', 'Content-Type', 'Media type of the body. application/json; charset=utf-8'],
+  ['res', 'ETag', 'Resource version identifier. Used with If-None-Match.'],
+  ['res', 'Expires', 'Legacy cache expiry date (superseded by Cache-Control).'],
+  ['res', 'Last-Modified', 'Resource last-modified date. Used with If-Modified-Since.'],
+  ['res', 'Location', 'Redirect target (with 3xx) or new resource URL (with 201 Created).'],
+  ['res', 'Permissions-Policy', 'Controls which browser features (geolocation, camera, etc.) can be used.'],
+  ['res', 'Referrer-Policy', 'Controls what Referer header is sent when navigating away.'],
+  ['res', 'Retry-After', 'When to retry. Used with 429 and 503.'],
+  ['res', 'Server', 'Identifies the server software. Security-conscious deploys hide or fake this.'],
+  ['res', 'Set-Cookie', 'Sets a cookie. Flags: Secure, HttpOnly, SameSite=Strict/Lax/None.'],
+  ['res', 'Strict-Transport-Security', 'HSTS. Forces HTTPS for a given duration. max-age=31536000; includeSubDomains; preload.'],
+  ['res', 'Vary', 'Which request headers affect the response. Critical for caching behind CDNs.'],
+  ['res', 'WWW-Authenticate', 'Challenge that goes with 401. e.g. Basic realm="app".'],
+  ['res', 'X-Content-Type-Options', 'nosniff — prevents MIME-type sniffing. Defence against polyglot attacks.'],
+  ['res', 'X-Frame-Options', 'DENY or SAMEORIGIN — blocks iframe embedding. Clickjacking defence.'],
+  ['res', 'X-XSS-Protection', 'Legacy XSS filter toggle. Deprecated in favour of CSP.'],
+];
+
+MODULES.push({
+  id: 'headers',
+  name: 'HTTP Headers',
+  icon: 'hh',
+  category: 'Reference',
+  desc: 'Searchable reference for request and response headers with security notes.',
+  keywords: ['http','headers','request','response','cors','csp','hsts','cache','cookie','security','auth'],
+  init(c) {
+    c.innerHTML = '';
+    const search = el('input', { type: 'text', placeholder: 'Search header name or description…' });
+    search.value = store.get('headers:q', '');
+    const list = el('div', { class: 'ref-list' });
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      list.innerHTML = '';
+      const filtered = HTTP_HEADERS.filter(([kind, name, desc]) =>
+        !q || name.toLowerCase().includes(q) || desc.toLowerCase().includes(q) || kind.includes(q));
+      if (!filtered.length) { list.appendChild(el('div', { class: 'ref-empty' }, 'No matches')); return; }
+      filtered.forEach(([kind, name, desc]) => {
+        const card = el('div', { class: 'ref-card' });
+        card.appendChild(el('div', { class: 'head' },
+          el('span', { class: 'code', style: 'font-size:13px' }, name),
+          el('span', { class: 'tag ' + (kind === 'req' ? 'ok' : 'warn') }, kind === 'req' ? 'request' : 'response')
+        ));
+        card.appendChild(el('div', { class: 'desc' }, desc));
+        card.onclick = () => copy(name);
+        card.style.cursor = 'pointer';
+        card.title = 'Click to copy header name';
+        list.appendChild(card);
+      });
+      store.set('headers:q', search.value);
+    }
+    search.addEventListener('input', render);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Filter'),
+      search,
+      list
+    ));
+    render();
+  }
+});
+
+/* ============================================================
    APP SHELL
    ============================================================ */
 
@@ -3657,9 +5071,12 @@ function buildSidebar() {
     const group = el('div', { class: 'nav-group', 'data-cat': cat });
     group.appendChild(el('div', { class: 'nav-group-title' }, cat));
     mods.forEach(m => {
-      const item = el('div', { class: 'nav-item', 'data-id': m.id, 'data-name': m.name.toLowerCase() },
+      const haystack = (m.name + ' ' + (m.desc || '') + ' ' + (m.keywords || []).join(' ')).toLowerCase();
+      const label = el('span', {}, m.name);
+      label.classList.add('nav-label');
+      const item = el('div', { class: 'nav-item', 'data-id': m.id, 'data-name': m.name, 'data-haystack': haystack },
         el('span', { class: 'nav-icon' }, m.icon),
-        el('span', {}, m.name)
+        label
       );
       item.onclick = () => { location.hash = '#' + m.id; closeSidebarMobile(); };
       group.appendChild(item);
@@ -3702,8 +5119,24 @@ function handleHash() {
 function filterNav(q) {
   q = q.trim().toLowerCase();
   document.querySelectorAll('.nav-item').forEach(n => {
-    const match = !q || n.getAttribute('data-name').includes(q);
+    const haystack = n.getAttribute('data-haystack') || '';
+    const name = n.getAttribute('data-name') || '';
+    const match = !q || haystack.includes(q);
     n.classList.toggle('hidden', !match);
+    // Highlight the match inside the displayed label
+    const label = n.querySelector('.nav-label');
+    if (!label) return;
+    if (!q) { label.textContent = name; return; }
+    const idx = name.toLowerCase().indexOf(q);
+    if (idx >= 0) {
+      label.innerHTML = '';
+      label.appendChild(document.createTextNode(name.slice(0, idx)));
+      label.appendChild(el('mark', {}, name.slice(idx, idx + q.length)));
+      label.appendChild(document.createTextNode(name.slice(idx + q.length)));
+    } else {
+      // match came from desc or keywords — leave the name as-is
+      label.textContent = name;
+    }
   });
   document.querySelectorAll('.nav-group').forEach(g => {
     const visible = g.querySelectorAll('.nav-item:not(.hidden)').length;

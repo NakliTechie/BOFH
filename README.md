@@ -85,6 +85,20 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 - **Web Crypto API** for the JWT verifier — same primitives your OS uses, no JS crypto libraries
 - **Mobile-friendly** — sidebar collapses to a hamburger menu
 
+### Palette
+
+BOFH ships with a runtime palette picker in the sidebar foot. The default is the standard dark / light theme; seven dark Rangrez palettes are also available, each retuning the semantic CSS variables (`--bg`, `--text`, `--accent`, `--link`, `--ok`, `--warn`, `--err`):
+
+- **REAKTOR 4** — dosimeter-LCD lime ink, warning-yellow brand, Cherenkov blue accent. Peak BOFH energy.
+- **SHAB-E YALDA** — saffron ink, pomegranate brand, royal blue accent. The on-call sysadmin vigil.
+- **LATE NIGHT** — hot-pink ink, cyan brand, pale-yellow accent. 3 AM moodboard.
+- **1933 CLOSED** — Bauhaus signal-yellow ink, red brand, primary-blue accent. Manifesto severity.
+- **1988 DISSOLVED** — Memphis white ink, hot-pink brand, teal accent.
+- **ÒRUN** — Yoruba kente-gold ink, rose brand, electric indigo accent.
+- **BRUTALIST NIGHT** — concrete-grey ink, brick brand, sodium-amber accent.
+
+Choice persists in `localStorage`. Palettes are sourced from [Rangrez](https://github.com/NakliTechie/rangrez) — a 240-palette library by the same author.
+
 ### Keyboard shortcuts
 
 - `/` — focus the module filter

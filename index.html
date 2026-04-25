@@ -53,6 +53,54 @@
   --link: #0366d6;
 }
 
+/* ----- Rangrez palettes (dark only) -----
+   When body[data-palette] is set, these override the defaults.
+   Source: https://github.com/NakliTechie/rangrez */
+body[data-palette="reaktor"] {
+  --bg: #06080a; --bg-2: #0c1014; --bg-3: #101418;
+  --text: #c8e858; --accent: #f0c818; --accent-dim: #b89010;
+  --link: #1a8ad8; --ok: #d82828; --warn: #f0c818; --err: #d82828;
+}
+body[data-palette="yalda"] {
+  --bg: #14080c; --bg-2: #1e0e14; --bg-3: #1e0c12;
+  --text: #f0c870; --accent: #d83828; --accent-dim: #a02418;
+  --link: #4a6ac8; --ok: #7a9a3a; --warn: #f0c870; --err: #d83828;
+}
+body[data-palette="latenight"] {
+  --bg: #0a0818; --bg-2: #14142a; --bg-3: #1a1028;
+  --text: #f088c0; --accent: #2ac8d8; --accent-dim: #1a90a0;
+  --link: #f8e8a8; --ok: #c8b8e8; --warn: #f8e8a8; --err: #f088c0;
+}
+body[data-palette="bauhaus"] {
+  --bg: #0a0a0c; --bg-2: #14141c; --bg-3: #1a1a1e;
+  --text: #f0c808; --accent: #d82418; --accent-dim: #a01810;
+  --link: #1a3ac8; --ok: #f4f4f0; --warn: #f0c808; --err: #d82418;
+}
+body[data-palette="memphis"] {
+  --bg: #0a0a0c; --bg-2: #14141c; --bg-3: #1a1a1c;
+  --text: #f4f4f0; --accent: #f02890; --accent-dim: #b01868;
+  --link: #2ab0c0; --ok: #f0c828; --warn: #f0c828; --err: #f02890;
+}
+body[data-palette="orun"] {
+  --bg: #08081a; --bg-2: #14142a; --bg-3: #1a1428;
+  --text: #f0d2a0; --accent: #d83858; --accent-dim: #a02840;
+  --link: #4a6ad8; --ok: #5aaa3a; --warn: #f0d2a0; --err: #d83858;
+}
+body[data-palette="brutalist"] {
+  --bg: #1a1a1e; --bg-2: #24242a; --bg-3: #0a0a0e;
+  --text: #c8c4b8; --accent: #c84828; --accent-dim: #983418;
+  --link: #e89830; --ok: #4a6a2a; --warn: #e89830; --err: #c84828;
+}
+
+/* Shared derivations for any active Rangrez palette: borders + dim text
+   are computed from the palette's own bg/text so they stay coherent. */
+body[data-palette] {
+  --border: color-mix(in srgb, var(--bg-2) 82%, var(--text) 18%);
+  --border-2: color-mix(in srgb, var(--bg-2) 65%, var(--text) 35%);
+  --text-dim: color-mix(in srgb, var(--text) 65%, var(--bg) 35%);
+  --text-faint: color-mix(in srgb, var(--text) 40%, var(--bg) 60%);
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; height: 100%; }
 body {
@@ -170,6 +218,36 @@ body {
 .nav-icon { font-family: var(--mono); font-size: 12px; width: 16px; text-align: center; opacity: 0.75; }
 .nav-item.hidden { display: none; }
 .nav-group.empty { display: none; }
+
+#palette-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px 6px;
+  border-top: 1px solid var(--border);
+}
+.palette-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+#palette-picker {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+#palette-picker:focus, #palette-picker:hover { border-color: var(--accent); }
 
 #sidebar-foot {
   padding: 8px 12px;
@@ -790,8 +868,21 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <div id="search-wrap"><input id="search" placeholder="Search (name, features, keywords)…" autocomplete="off" spellcheck="false"></div>
     <nav id="nav"></nav>
+    <div id="palette-row">
+      <span class="palette-label">Palette</span>
+      <select id="palette-picker" title="Rangrez palette (dark)">
+        <option value="default">Default</option>
+        <option value="reaktor">REAKTOR 4</option>
+        <option value="yalda">SHAB-E YALDA</option>
+        <option value="latenight">LATE NIGHT</option>
+        <option value="bauhaus">1933 CLOSED</option>
+        <option value="memphis">1988 DISSOLVED</option>
+        <option value="orun">ÒRUN</option>
+        <option value="brutalist">BRUTALIST NIGHT</option>
+      </select>
+    </div>
     <div id="sidebar-foot">
-      <button class="icon-btn" id="theme-btn" title="Toggle theme">◐</button>
+      <button class="icon-btn" id="theme-btn" title="Toggle theme (Default palette only)">◐</button>
       <button class="icon-btn" id="help-btn" title="Help">?</button>
       <span class="spacer"></span>
       <button class="icon-btn" id="clear-btn" title="Clear all stored state">⌫</button>
@@ -1041,6 +1132,19 @@ function applyTheme(t) {
   const saved = store.get('_global:theme', '');
   if (saved) applyTheme(saved);
   else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) applyTheme('light');
+})();
+
+/* ---------- palette (Rangrez dark palettes) ---------- */
+function applyPalette(id) {
+  if (id && id !== 'default') document.body.setAttribute('data-palette', id);
+  else document.body.removeAttribute('data-palette');
+  store.set('_global:palette', id || 'default');
+  const sel = document.getElementById('palette-picker');
+  if (sel) sel.value = id || 'default';
+}
+(function initPalette() {
+  const saved = store.get('_global:palette', 'default');
+  applyPalette(saved);
 })();
 
 /* ============================================================
@@ -5165,6 +5269,7 @@ function init() {
   window.addEventListener('hashchange', handleHash);
   $('search').addEventListener('input', e => filterNav(e.target.value));
   $('theme-btn').onclick = () => applyTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  $('palette-picker').onchange = e => applyPalette(e.target.value);
   $('help-btn').onclick = openHelp;
   $('clear-btn').onclick = () => {
     if (confirm('Clear all BOFH data from this browser? (theme preference is kept)')) {

@@ -1,6 +1,6 @@
 # BOFH — Browser-Native Dev Toolkit
 
-**One HTML file. Twenty tools. Zero data leaving your device.**
+**One HTML file. Forty-eight tools. Zero data leaving your device.**
 
 Named after the [Bastard Operator From Hell](https://en.wikipedia.org/wiki/Bastard_Operator_from_Hell) — because your tokens, keys, and logs deserve better than some random website's S3 bucket.
 
@@ -20,22 +20,28 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 
 ---
 
-## What's in it — 31 modules across 4 categories
+## What's in it — 48 modules across 4 categories
 
 **Text & Data**
 
 | Module | What it does |
 |---|---|
 | **JSON** | Format, validate, minify, collapsible tree view, JSONPath query |
+| **JSON Schema** | Infer a schema from JSON, validate JSON against a schema, generate a sample from a schema. Pure JS. |
 | **XML** | Format, validate, XPath query via native `DOMParser` + `document.evaluate` |
 | **Config** | N-way converter between YAML, JSON, TOML, and dotenv. js-yaml (lazy CDN) + inline TOML/dotenv parsers. |
 | **Markdown** | Live preview with GFM tables / fenced code via marked.js. "Copy as HTML" button. |
+| **Diagram** | Paste Mermaid or Graphviz/DOT → live SVG preview, downloadable. Lazy CDN. |
 | **Diff** | Line-level diff with inline word-level highlighting (LCS, pure JS) |
 | **Table** | Convert tables between Markdown, HTML, CSV, TSV. Auto-detect source format. |
 | **String Tools** | Case conversion, slugify, HTML escape, whitespace collapse, word/char/byte counts. |
 | **CSV** | Drop CSV/TSV → sortable table, filter, regex find/replace, dedup, export. Papa Parse (lazy CDN). |
 | **SQL** | Drop CSV → BOFH infers types and creates a SQLite table → write SQL → results. sql.js WASM (~1MB, lazy). |
 | **Log Viewer** | Drop a log file → virtual scroll up to 500K lines + live regex search. Pure JS. |
+| **HAR Viewer** | Drop a `.har` file → summary, filterable request list, per-request waterfall, full request/response detail. Pure JS. |
+| **Hexdump** | Drop a file or paste text → hex + ASCII view, byte search (`"FF 00"` or `"GET "`), jump-to-offset. Pure JS. |
+| **Archive** | Drop a `.zip` → browsable tree with sizes, preview text files, extract any single entry. JSZip lazy CDN. |
+| **Protobuf** | Decode a base64/hex/binary payload into a wire-format tree. Auto-detects strings and nested messages. No `.proto` needed. |
 
 **Crypto & Security**
 
@@ -43,11 +49,13 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 |---|---|
 | **JWT** | Decode header/payload, verify HS256/384/512 and RS256/384/512, expiry & nbf checks, claim highlights |
 | **Hash** | SHA-1/256/384/512 + MD5 + HMAC. Text or file. Hex / base64 / base64url. Compare against expected. |
+| **bcrypt** | Hash passwords with adjustable cost rounds; verify candidates; copy as htpasswd line. bcryptjs lazy CDN. |
 | **TOTP** | RFC 6238 time-based OTP from a Base32 secret, live countdown. For testing your own 2FA. |
 | **Password** | Cryptographically random passwords (`crypto.getRandomValues`), configurable charset, bits-of-entropy readout, bulk mode. |
 | **Base64** | Encode/decode text and files, URL-safe variant |
 | **URL** | Encode/decode, parse into components + query params, build from base + kv pairs, punycode decode |
 | **Keys** | Generate RSA (2048/3072/4096) or ECDSA (P-256/384/521) keypairs → SPKI/PKCS#8 PEM. Decode PEM public keys and X.509 certificates. |
+| **JWK ↔ PEM** | Round-trip RSA / RSA-PSS / RSA-OAEP / ECDSA keys between JWK and PEM in either direction. Web Crypto only. |
 
 **Converters & Generators**
 
@@ -55,11 +63,16 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 |---|---|
 | **Timestamp** | Unix epoch ↔ human, timezone-aware (`Intl`), relative time |
 | **UUID** | Generate UUID v4, UUID v7, or Nano ID. Bulk. Parse & validate. |
+| **ULID / KSUID** | Parse and decode ULID, KSUID, and Twitter Snowflake IDs; generate ULIDs. |
+| **Semver** | Parse, compare, range satisfaction (`^`, `~`, `>=`, `x.y.*`), bump major/minor/patch/prerelease. |
 | **Regex** | JavaScript regex with live highlighting, capture groups, all six flags, preset library, live replace preview, "Show escapes" toggle |
 | **Number Base** | Dec / hex / oct / bin converter. 8/16/32/64-bit widths, two's-complement signed view. BigInt under the hood. |
 | **chmod** | 3×3 checkbox grid → octal + symbolic. Presets for 0644, 0755, 0600, 0777. |
 | **QR Code** | Text → QR via qrcode-generator (lazy CDN). Error-correction + cell-size settings, downloadable. |
 | **Color** | Convert hex / rgb / hsl / oklch / named via the browser's CSS parser. WCAG contrast ratio with AA / AAA pass-fail badges. |
+| **CSS Specificity** | Paste selectors → per-selector `a,b,c` score with breakdown. Handles `:not / :is / :where / :has`. |
+| **Image** | Resize, format-convert (PNG/JPEG/WebP), strip EXIF, get a Data URI. All canvas-side. |
+| **Mock JSON** | Template tokens (`{{name}} {{email}} {{int 1 100}} {{uuid}} {{pick a b c}} {{i}}`) → N rows as JSON / NDJSON / CSV. |
 | **Unicode** | Per-character codepoint / UTF-8 / category inspector. Flags zero-width, BOM, bidi, homoglyph-friendly chars. |
 | **IP / Subnet** | IPv4 CIDR calculator + "Expand all IPs" enumeration. Network, broadcast, mask, wildcard, class, RFC1918 type, binary view. |
 | **Cron** | Parse 5-field cron, plain-English description, expanded value sets, next 10 run times in your local timezone. |
@@ -70,8 +83,12 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 |---|---|
 | **HTTP Status** | Searchable reference for every HTTP status code (1xx–5xx, including WebDAV). |
 | **HTTP Headers** | Searchable request/response header reference with security notes (CSP, HSTS, X-Frame-Options, etc.). |
+| **CSP Builder** | Compose a `Content-Security-Policy` per directive + HSTS / X-Content-Type-Options / Referrer-Policy / Permissions-Policy header block. |
 | **MIME Types** | Searchable MIME type ↔ extension reference. |
+| **MAC OUI** | Look up MAC prefixes against a curated common-vendor list (VMware, VirtualBox, QEMU, Apple, Google, Raspberry Pi, …), with reverse vendor search and unicast/multicast classification. |
 | **User Agent** | Your current `navigator.userAgent` parsed into browser/version/engine/OS/device, plus Client Hints when available. Paste any UA to parse. |
+| **License Picker** | 8 SPDX licenses (MIT, Apache-2.0, BSD-3-Clause, GPL-3.0, AGPL-3.0, MPL-2.0, Unlicense, CC0-1.0) with TL;DR and name/year fill-in. |
+| **Templates** | `.gitignore` (Node/Python/Rust/Go), `.editorconfig`, `robots.txt`, `humans.txt`, `Dockerfile`, `Makefile` starters. |
 
 ---
 

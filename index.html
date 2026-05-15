@@ -1072,6 +1072,15 @@ const el = (tag, attrs = {}, ...children) => {
 };
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* ---------- cross-link to NakliPoster (sister project, local-first API client) ---------- */
+function posterLink(prefix) {
+  return el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)' },
+    (prefix || 'Want to actually send the request?') + ' Try ',
+    el('a', { href: 'https://nakliposter.naklitechie.com', target: '_blank', rel: 'noopener', style: 'color:var(--link)' }, 'NakliPoster'),
+    ' — local-first API client.'
+  );
+}
+
 /* ---------- storage ---------- */
 const store = {
   get(key, fallback = '') {
@@ -1483,7 +1492,8 @@ MODULES.push({
       secretInput,
       el('div', { class: 'label', style: 'margin-top:8px' }, 'RS256/384/512 public key (PEM)'),
       keyInput,
-      el('div', { class: 'btn-row', style: 'margin-top:6px' }, verifyBtn, verifyStatus)
+      el('div', { class: 'btn-row', style: 'margin-top:6px' }, verifyBtn, verifyStatus),
+      posterLink('Sending this token as an Authorization header?')
     ));
 
     if (input.value) decode();
@@ -1585,7 +1595,8 @@ MODULES.push({
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Base64'),
       out,
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Encode a file'),
-      fileInput
+      fileInput,
+      posterLink('Building a Basic-auth header or encoding a body? Send it with')
     ));
   }
 });
@@ -2180,7 +2191,8 @@ MODULES.push({
       paramsBox,
       el('div', { class: 'btn-row' }, addBtn, el('span', { class: 'spacer' })),
       el('div', { class: 'label', style: 'margin-top:6px' }, 'Built URL'),
-      el('div', { class: 'btn-row' }, builtOut, copyBuilt)
+      el('div', { class: 'btn-row' }, builtOut, copyBuilt),
+      posterLink('Built the URL, now want to call it?')
     ));
     renderParams();
     build();
@@ -3601,7 +3613,8 @@ MODULES.push({
     c.appendChild(el('div', { class: 'col' },
       el('div', { class: 'label' }, 'Filter'),
       search,
-      list
+      list,
+      posterLink('See these live against your own endpoint with')
     ));
     render();
   }
@@ -5164,7 +5177,8 @@ MODULES.push({
     c.appendChild(el('div', { class: 'col' },
       el('div', { class: 'label' }, 'Filter'),
       search,
-      list
+      list,
+      posterLink('Inspect these headers on a live response with')
     ));
     render();
   }
@@ -5689,7 +5703,8 @@ MODULES.push({
         el('div', { class: 'col' }, el('div', { class: 'label' }, 'JSON / input'), left),
         el('div', { class: 'col' }, el('div', { class: 'label' }, 'Schema'), right)
       ),
-      el('div', { class: 'label', style: 'margin-top:10px' }, 'Output'), out
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Output'), out,
+      posterLink('Design a request body here, then send it with')
     ));
     run();
   }
@@ -5799,7 +5814,8 @@ MODULES.push({
       ),
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Template (single JSON object)'),
       tpl,
-      el('div', { class: 'label', style: 'margin-top:10px' }, 'Output'), out
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Output'), out,
+      posterLink('Generate fixture data here, then POST it as a request body with')
     ));
     run();
   }
@@ -6148,7 +6164,8 @@ MODULES.push({
         el('button', { class: 'btn', onclick: () => copy(headers.textContent) }, 'Copy all headers')
       ),
       el('div', { class: 'label', style: 'margin-top:8px' }, 'CSP'), cspOut,
-      el('div', { class: 'label', style: 'margin-top:8px' }, 'All headers'), headers
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'All headers'), headers,
+      posterLink('Compose headers here, then hit your endpoint and inspect the response with')
     ));
     update();
   }
@@ -6370,7 +6387,8 @@ MODULES.push({
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Filter'), filter,
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Requests (click for detail)'),
       list,
-      el('div', { class: 'label', style: 'margin-top:8px' }, 'Detail'), detail
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Detail'), detail,
+      posterLink('This is a read-only post-mortem of a saved capture. Making the requests in the first place?')
     ));
   }
 });
@@ -7024,7 +7042,8 @@ MODULES.push({
       ),
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Payload'), input,
       el('div', { class: 'label', style: 'margin-top:8px' }, 'Decoded'), out,
-      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:6px' }, 'Wire-format decoder — field names are numbers (no .proto needed). Strings and nested messages are auto-detected from length-delimited fields. Varints expose int32 / int64 / zigzag / bool interpretations.')
+      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:6px' }, 'Wire-format decoder — field names are numbers (no .proto needed). Strings and nested messages are auto-detected from length-delimited fields. Varints expose int32 / int64 / zigzag / bool interpretations.'),
+      posterLink('Calling a gRPC endpoint live?')
     ));
     if (input.value.trim()) render();
   }

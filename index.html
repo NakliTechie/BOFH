@@ -6576,6 +6576,461 @@ MODULES.push({
 });
 
 /* ============================================================
+   PHASE 7 — Diagram, Image, Archive, Protobuf
+   ============================================================ */
+
+/* ---------- Diagram (Mermaid + Graphviz via viz.js) ---------- */
+const MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js';
+const VIZ_CDN = 'https://cdn.jsdelivr.net/npm/@viz-js/viz@3.7.0/lib/viz-standalone.js';
+
+MODULES.push({
+  id: 'diagram',
+  name: 'Diagram',
+  icon: 'dg',
+  category: 'Text & Data',
+  desc: 'Paste Mermaid or Graphviz/DOT → live SVG preview. Lazy CDN.',
+  keywords: ['diagram','mermaid','graphviz','dot','plantuml','svg','flowchart','sequence','class','gantt','er'],
+  init(c) {
+    c.innerHTML = '';
+    const engineSel = el('select');
+    [['mermaid','Mermaid'], ['dot','Graphviz / DOT']].forEach(([v,l]) => engineSel.appendChild(el('option', { value: v }, l)));
+    engineSel.value = store.get('diagram:engine', 'mermaid');
+    const samples = {
+      mermaid: 'graph LR\n  A[Client] --> B[CDN]\n  B --> C{Cache?}\n  C -- yes --> D[Return]\n  C -- no  --> E[Origin]\n  E --> F[(DB)]\n  E --> D',
+      dot: 'digraph G {\n  rankdir=LR;\n  node [shape=box, style=rounded];\n  Client -> CDN -> Cache;\n  Cache -> Origin [label="miss"];\n  Cache -> Client [label="hit"];\n  Origin -> DB;\n}'
+    };
+    const input = el('textarea', { spellcheck: 'false', style: 'min-height:240px' });
+    input.value = store.get('diagram:input', samples.mermaid);
+    const out = el('div', { style: 'border:1px solid var(--border);border-radius:5px;padding:12px;background:#fff;min-height:200px;overflow:auto' });
+    const status = el('div', { class: 'status' });
+    const badge = el('div', { class: 'status' });
+
+    let mermaidReady = false;
+    let vizInstance = null;
+    let renderToken = 0;
+
+    async function render() {
+      const my = ++renderToken;
+      try {
+        if (engineSel.value === 'mermaid') {
+          if (!mermaidReady) {
+            badge.textContent = 'Loading Mermaid…'; badge.className = 'status warn';
+            await loadScript(MERMAID_CDN);
+            window.mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+            mermaidReady = true;
+            badge.textContent = '';
+          }
+          const id = 'm' + Date.now();
+          const { svg } = await window.mermaid.render(id, input.value);
+          if (my !== renderToken) return;
+          out.innerHTML = svg;
+          status.textContent = '✓ rendered'; status.className = 'status ok';
+        } else if (engineSel.value === 'dot') {
+          if (!vizInstance) {
+            badge.textContent = 'Loading viz.js…'; badge.className = 'status warn';
+            await loadScript(VIZ_CDN);
+            vizInstance = await window.Viz.instance();
+            badge.textContent = '';
+          }
+          const svg = vizInstance.renderSVGElement(input.value);
+          if (my !== renderToken) return;
+          out.innerHTML = ''; out.appendChild(svg);
+          status.textContent = '✓ rendered'; status.className = 'status ok';
+        }
+        store.set('diagram:input', input.value);
+        store.set('diagram:engine', engineSel.value);
+      } catch (e) {
+        if (my !== renderToken) return;
+        out.innerHTML = '<pre style="color:#b91c1c;margin:0;white-space:pre-wrap">' + escapeHtml(e.message || String(e)) + '</pre>';
+        status.textContent = '✗ render error'; status.className = 'status err';
+      }
+    }
+    let timer;
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(render, 250); });
+    engineSel.addEventListener('change', () => {
+      if (!input.value || input.value === samples.mermaid || input.value === samples.dot) {
+        input.value = samples[engineSel.value];
+      }
+      render();
+    });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Engine'), engineSel,
+        el('button', { class: 'btn', onclick: () => {
+          const svg = out.querySelector('svg');
+          if (!svg) return;
+          const ser = new XMLSerializer().serializeToString(svg);
+          const blob = new Blob([ser], { type: 'image/svg+xml' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+          URL.revokeObjectURL(a.href);
+        } }, 'Download SVG'),
+        el('span', { class: 'spacer' }), badge, status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Source'), input,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Preview'), out,
+      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:6px' }, 'Mermaid + viz.js (Graphviz/DOT) lazy-loaded from jsDelivr on first render. PlantUML needs a server and is intentionally not included.')
+    ));
+    render();
+  }
+});
+
+/* ---------- Image tools (canvas-side) ---------- */
+MODULES.push({
+  id: 'image',
+  name: 'Image',
+  icon: 'im',
+  category: 'Converters & Generators',
+  desc: 'Resize, format-convert, strip EXIF, get a Data URI. All canvas-side — image never leaves the tab.',
+  keywords: ['image','resize','crop','convert','exif','strip','data uri','png','jpg','jpeg','webp','svg','optimise'],
+  init(c) {
+    c.innerHTML = '';
+    const fileInput = el('input', { type: 'file', accept: 'image/*' });
+    const widthIn = el('input', { type: 'number', placeholder: 'max width', style: 'max-width:120px' });
+    const heightIn = el('input', { type: 'number', placeholder: 'max height', style: 'max-width:120px' });
+    const fmt = el('select');
+    [['original','keep'], ['image/png','PNG'], ['image/jpeg','JPEG'], ['image/webp','WebP']].forEach(([v,l]) => fmt.appendChild(el('option', { value: v }, l)));
+    fmt.value = store.get('image:fmt', 'original');
+    const quality = el('input', { type: 'range', min: '0.1', max: '1', step: '0.05', value: store.get('image:q', '0.92'), style: 'max-width:140px' });
+    const qLabel = el('span', { style: 'font-family:var(--mono);font-size:12px;color:var(--text-faint)' }, quality.value);
+    const stripBox = el('input', { type: 'checkbox' }); stripBox.checked = true; // canvas re-encode always strips EXIF
+    const stats = el('div', { class: 'kv' });
+    const preview = el('img', { style: 'max-width:100%;max-height:480px;display:block;background:#222;border:1px solid var(--border);border-radius:5px' });
+    const dataUri = el('textarea', { spellcheck: 'false', style: 'min-height:80px;font-family:var(--mono);font-size:11px' });
+    const status = el('div', { class: 'status' });
+    let currentBlob = null;
+    let originalFile = null;
+
+    quality.addEventListener('input', () => { qLabel.textContent = quality.value; });
+
+    async function process() {
+      const f = originalFile;
+      if (!f) return;
+      try {
+        store.set('image:fmt', fmt.value);
+        store.set('image:q', quality.value);
+        const url = URL.createObjectURL(f);
+        const img = new Image();
+        await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('image load failed')); img.src = url; });
+        const w0 = img.naturalWidth, h0 = img.naturalHeight;
+        const maxW = +widthIn.value || w0;
+        const maxH = +heightIn.value || h0;
+        const ratio = Math.min(maxW / w0, maxH / h0, 1);
+        const w = Math.max(1, Math.round(w0 * ratio));
+        const h = Math.max(1, Math.round(h0 * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        const outType = fmt.value === 'original' ? (f.type || 'image/png') : fmt.value;
+        const blob = await new Promise(r => canvas.toBlob(r, outType, +quality.value));
+        currentBlob = blob;
+        preview.src = URL.createObjectURL(blob);
+        stats.innerHTML = '';
+        const rows = [
+          ['source', f.name + ' · ' + f.type + ' · ' + f.size.toLocaleString() + ' bytes'],
+          ['source size', w0 + '×' + h0],
+          ['output type', outType],
+          ['output size', w + '×' + h],
+          ['output bytes', blob.size.toLocaleString() + ' (' + Math.round(blob.size / f.size * 100) + '% of source)'],
+          ['EXIF', 'stripped (canvas re-encode does not preserve metadata)'],
+        ];
+        rows.forEach(([k, v]) => {
+          stats.appendChild(el('div', { class: 'k' }, k));
+          stats.appendChild(el('div', { class: 'v' }, String(v)));
+        });
+        // Data URI only for small images to avoid choking the textarea
+        if (blob.size < 200 * 1024) {
+          const reader = new FileReader();
+          reader.onload = () => { dataUri.value = reader.result; };
+          reader.readAsDataURL(blob);
+        } else {
+          dataUri.value = '(suppressed: output >200KB. Use Download instead.)';
+        }
+        status.textContent = '✓ processed'; status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    fileInput.addEventListener('change', () => { originalFile = fileInput.files[0]; if (originalFile) process(); });
+    [widthIn, heightIn, quality].forEach(i => i.addEventListener('change', process));
+    fmt.onchange = process;
+
+    function download() {
+      if (!currentBlob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(currentBlob);
+      const ext = currentBlob.type.split('/')[1] || 'bin';
+      a.download = (originalFile?.name?.replace(/\.[^.]+$/, '') || 'image') + '.' + ext;
+      a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Image'), fileInput,
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        el('div', { class: 'label' }, 'Max width'), widthIn,
+        el('div', { class: 'label' }, 'Max height'), heightIn,
+        el('div', { class: 'label' }, 'Format'), fmt,
+        el('div', { class: 'label' }, 'Quality'), quality, qLabel,
+        el('button', { class: 'btn btn-primary', onclick: download }, 'Download'),
+        el('button', { class: 'btn', onclick: () => copy(dataUri.value) }, 'Copy Data URI')
+      ),
+      stats,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Preview'),
+      preview,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Data URI'),
+      dataUri
+    ));
+  }
+});
+
+/* ---------- Archive Inspector (zip via jszip lazy) ---------- */
+const JSZIP_CDN = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+
+MODULES.push({
+  id: 'archive',
+  name: 'Archive',
+  icon: 'ar',
+  category: 'Text & Data',
+  desc: 'Drop a .zip → browse the tree, preview text files, extract any single entry. Lazy CDN.',
+  keywords: ['archive','zip','unzip','extract','tree','tar','gz','jszip'],
+  init(c) {
+    c.innerHTML = '';
+    const fileInput = el('input', { type: 'file', accept: '.zip' });
+    const tree = el('div', { style: 'border:1px solid var(--border);border-radius:5px;padding:8px;max-height:420px;overflow:auto;font-family:var(--mono);font-size:12px' });
+    const preview = el('pre', { class: 'pre-out', style: 'max-height:420px' });
+    const status = el('div', { class: 'status' });
+    const badge = el('div', { class: 'status' });
+    let zip = null;
+
+    async function ensure() {
+      if (window.JSZip) return;
+      badge.textContent = 'Loading JSZip…'; badge.className = 'status warn';
+      await loadScript(JSZIP_CDN);
+      badge.textContent = '';
+    }
+    function renderTree() {
+      tree.innerHTML = '';
+      const entries = Object.values(zip.files);
+      entries.sort((a, b) => a.name.localeCompare(b.name));
+      let totalUncompressed = 0;
+      entries.forEach(entry => {
+        if (entry.dir) return;
+        const size = entry._data?.uncompressedSize || 0;
+        totalUncompressed += size;
+        const row = el('div', { style: 'display:flex;gap:8px;padding:3px 0;cursor:pointer;border-bottom:1px solid var(--border)' });
+        row.appendChild(el('span', { style: 'flex:1;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, entry.name));
+        row.appendChild(el('span', { style: 'color:var(--text-faint);min-width:80px;text-align:right' }, size.toLocaleString() + ' B'));
+        row.onclick = async () => {
+          status.textContent = 'Reading ' + entry.name + '…'; status.className = 'status warn';
+          try {
+            // Heuristic: treat as text if extension looks textual or size small enough
+            const ext = (entry.name.split('.').pop() || '').toLowerCase();
+            const textExts = ['txt','md','json','xml','yaml','yml','toml','ini','cfg','conf','js','jsx','ts','tsx','css','html','htm','sh','py','rb','go','rs','java','c','cpp','h','hpp','log','csv','tsv','sql','env','gitignore','editorconfig'];
+            if (size < 1024*1024 && (textExts.includes(ext) || !ext)) {
+              const txt = await entry.async('string');
+              preview.textContent = txt;
+            } else {
+              preview.textContent = '(' + size.toLocaleString() + ' bytes — binary or large. Use Extract to download.)';
+            }
+            status.textContent = '✓ ' + entry.name; status.className = 'status ok';
+            tree.querySelectorAll('.zip-active').forEach(n => n.classList.remove('zip-active'));
+            row.classList.add('zip-active'); row.style.background = 'var(--bg-3)';
+            window._archiveCurrent = entry;
+          } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+        };
+        tree.appendChild(row);
+      });
+      const head = el('div', { style: 'padding:4px 0;color:var(--text-faint);border-bottom:1px solid var(--border);margin-bottom:6px' },
+        entries.filter(e => !e.dir).length + ' files · ' + totalUncompressed.toLocaleString() + ' bytes uncompressed');
+      tree.prepend(head);
+    }
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      try {
+        await ensure();
+        status.textContent = 'Opening ' + f.name + '…'; status.className = 'status warn';
+        zip = await window.JSZip.loadAsync(f);
+        status.textContent = '✓ opened ' + f.name; status.className = 'status ok';
+        renderTree();
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    });
+    async function extractCurrent() {
+      const e = window._archiveCurrent;
+      if (!e) return;
+      const blob = await e.async('blob');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = e.name.split('/').pop();
+      a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Drop .zip'), fileInput,
+        el('button', { class: 'btn', onclick: extractCurrent }, 'Extract selected'),
+        el('span', { class: 'spacer' }), badge, status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Entries (click to preview)'),
+      tree,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Preview'),
+      preview,
+      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:6px' }, 'ZIP read via JSZip (lazy CDN). For .tar/.gz, the tarball format would need an extra decoder — open an issue if you need it.')
+    ));
+  }
+});
+
+/* ---------- Protobuf wire-format decoder (pure JS, no .proto needed) ---------- */
+function pbVarint(bytes, pos) {
+  let result = 0n, shift = 0n, b;
+  do {
+    if (pos >= bytes.length) throw new Error('truncated varint at ' + pos);
+    b = bytes[pos++];
+    result |= BigInt(b & 0x7f) << shift;
+    shift += 7n;
+    if (shift > 64n) throw new Error('varint too long');
+  } while (b & 0x80);
+  return [result, pos];
+}
+function pbDecode(bytes, depth = 0) {
+  const out = [];
+  let pos = 0;
+  while (pos < bytes.length) {
+    let key;
+    try { [key, pos] = pbVarint(bytes, pos); }
+    catch (e) { out.push({ error: e.message + ' (remaining ' + (bytes.length - pos) + ' bytes)' }); break; }
+    const field = Number(key >> 3n);
+    const wire = Number(key & 0x07n);
+    if (wire === 0) {
+      let v; [v, pos] = pbVarint(bytes, pos);
+      // expose multiple interpretations
+      const n = Number(v);
+      out.push({ field, wire, type: 'varint', value: v.toString(), int32: (n | 0), int64: v.toString(), zigzag32: (n >>> 1) ^ -(n & 1), bool: v === 0n ? false : v === 1n ? true : null });
+    } else if (wire === 1) {
+      // 64-bit fixed
+      if (pos + 8 > bytes.length) { out.push({ error: 'truncated fixed64' }); break; }
+      const slice = bytes.slice(pos, pos + 8);
+      pos += 8;
+      const dv = new DataView(slice.buffer, slice.byteOffset, 8);
+      out.push({ field, wire, type: 'fixed64', double: dv.getFloat64(0, true), uint64: dv.getBigUint64(0, true).toString(), int64: dv.getBigInt64(0, true).toString(), hex: bytesToHex(slice) });
+    } else if (wire === 2) {
+      let len; [len, pos] = pbVarint(bytes, pos);
+      const n = Number(len);
+      if (pos + n > bytes.length) { out.push({ error: 'truncated length-delimited at field ' + field }); break; }
+      const slice = bytes.slice(pos, pos + n);
+      pos += n;
+      // try utf-8 string
+      let asString = null;
+      try {
+        asString = new TextDecoder('utf-8', { fatal: true }).decode(slice);
+        if (asString.match(/[\x00-\x08\x0e-\x1f]/)) asString = null; // probably binary
+      } catch {}
+      // try nested message
+      let nested = null;
+      if (depth < 8) {
+        try { nested = pbDecode(slice, depth + 1); }
+        catch {}
+      }
+      // if nested looks valid (covered the whole slice with sensible fields) prefer it
+      const usableNested = nested && !nested.some(x => x.error) && nested.length > 0;
+      const entry = { field, wire, type: 'length-delimited', length: n };
+      if (usableNested) entry.nested = nested;
+      else if (asString !== null) entry.string = asString;
+      else entry.hex = bytesToHex(slice.slice(0, 64)) + (n > 64 ? '…' : '');
+      out.push(entry);
+    } else if (wire === 5) {
+      if (pos + 4 > bytes.length) { out.push({ error: 'truncated fixed32' }); break; }
+      const slice = bytes.slice(pos, pos + 4);
+      pos += 4;
+      const dv = new DataView(slice.buffer, slice.byteOffset, 4);
+      out.push({ field, wire, type: 'fixed32', float: dv.getFloat32(0, true), uint32: dv.getUint32(0, true), int32: dv.getInt32(0, true), hex: bytesToHex(slice) });
+    } else {
+      out.push({ error: 'unsupported wire type ' + wire + ' at field ' + field }); break;
+    }
+  }
+  return out;
+}
+
+MODULES.push({
+  id: 'protobuf',
+  name: 'Protobuf',
+  icon: 'pb',
+  category: 'Text & Data',
+  desc: 'Decode a base64 / hex protobuf payload into a readable wire-level tree. No .proto required.',
+  keywords: ['protobuf','proto','grpc','wire','format','decode','varint','base64','binary'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste base64 or hex…', style: 'min-height:140px' });
+    input.value = store.get('protobuf:input', '');
+    const fmtSel = el('select');
+    [['auto','auto'], ['base64','base64'], ['hex','hex']].forEach(([v,l]) => fmtSel.appendChild(el('option', { value: v }, l)));
+    fmtSel.value = store.get('protobuf:fmt', 'auto');
+    const fileInput = el('input', { type: 'file' });
+    const out = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+
+    function parseInput(s) {
+      s = s.trim();
+      if (!s) return null;
+      const mode = fmtSel.value;
+      const looksHex = /^[0-9a-fA-F\s]+$/.test(s) && s.replace(/\s/g,'').length % 2 === 0;
+      if (mode === 'hex' || (mode === 'auto' && looksHex)) {
+        const clean = s.replace(/\s/g, '');
+        const arr = new Uint8Array(clean.length / 2);
+        for (let i = 0; i < arr.length; i++) arr[i] = parseInt(clean.substr(i*2, 2), 16);
+        return arr;
+      }
+      // base64 (also base64url)
+      let b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const bin = atob(b64.replace(/\s/g, ''));
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return arr;
+    }
+    function render() {
+      try {
+        store.set('protobuf:input', input.value);
+        store.set('protobuf:fmt', fmtSel.value);
+        const bytes = parseInput(input.value);
+        if (!bytes) { out.textContent = ''; status.textContent = ''; return; }
+        const tree = pbDecode(bytes);
+        out.textContent = JSON.stringify(tree, null, 2);
+        const totalFields = tree.length;
+        status.textContent = '✓ ' + bytes.length + ' bytes · ' + totalFields + ' top-level fields'; status.className = 'status ok';
+      } catch (e) { out.textContent = ''; status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    input.addEventListener('input', render);
+    fmtSel.onchange = render;
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      try {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        const tree = pbDecode(bytes);
+        out.textContent = JSON.stringify(tree, null, 2);
+        status.textContent = '✓ ' + bytes.length + ' bytes · ' + tree.length + ' top-level fields (from file)'; status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Format'), fmtSel,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Or load file'), fileInput,
+        el('button', { class: 'btn', onclick: () => copy(out.textContent) }, 'Copy JSON'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Payload'), input,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Decoded'), out,
+      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:6px' }, 'Wire-format decoder — field names are numbers (no .proto needed). Strings and nested messages are auto-detected from length-delimited fields. Varints expose int32 / int64 / zigzag / bool interpretations.')
+    ));
+    if (input.value.trim()) render();
+  }
+});
+
+/* ============================================================
    APP SHELL
    ============================================================ */
 

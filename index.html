@@ -6155,6 +6155,427 @@ MODULES.push({
 });
 
 /* ============================================================
+   PHASE 6 — JWK↔PEM, HAR Viewer, MAC OUI, bcrypt
+   ============================================================ */
+
+/* ---------- JWK ↔ PEM ---------- */
+MODULES.push({
+  id: 'jwk',
+  name: 'JWK ↔ PEM',
+  icon: 'jw',
+  category: 'Crypto & Security',
+  desc: 'Convert between JWK (JSON Web Key) and PEM for RSA and EC keys, in either direction.',
+  keywords: ['jwk','jwks','pem','rsa','ec','ecdsa','key','convert','spki','pkcs8','json web key'],
+  init(c) {
+    c.innerHTML = '';
+    const algSel = el('select');
+    [
+      ['RSA (RSASSA-PKCS1-v1_5, SHA-256)', { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }],
+      ['RSA-PSS (SHA-256)', { name: 'RSA-PSS', hash: 'SHA-256' }],
+      ['RSA-OAEP (SHA-256)', { name: 'RSA-OAEP', hash: 'SHA-256' }],
+      ['ECDSA P-256', { name: 'ECDSA', namedCurve: 'P-256' }],
+      ['ECDSA P-384', { name: 'ECDSA', namedCurve: 'P-384' }],
+      ['ECDSA P-521', { name: 'ECDSA', namedCurve: 'P-521' }],
+    ].forEach(([n]) => algSel.appendChild(el('option', { value: n }, n)));
+    const algMap = {
+      'RSA (RSASSA-PKCS1-v1_5, SHA-256)': { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      'RSA-PSS (SHA-256)': { name: 'RSA-PSS', hash: 'SHA-256' },
+      'RSA-OAEP (SHA-256)': { name: 'RSA-OAEP', hash: 'SHA-256' },
+      'ECDSA P-256': { name: 'ECDSA', namedCurve: 'P-256' },
+      'ECDSA P-384': { name: 'ECDSA', namedCurve: 'P-384' },
+      'ECDSA P-521': { name: 'ECDSA', namedCurve: 'P-521' },
+    };
+    algSel.value = store.get('jwk:alg', 'ECDSA P-256');
+
+    const pem = el('textarea', { spellcheck: 'false', placeholder: '-----BEGIN PUBLIC KEY-----  or  -----BEGIN PRIVATE KEY-----', style: 'min-height:200px' });
+    pem.value = store.get('jwk:pem', '');
+    const jwk = el('textarea', { spellcheck: 'false', placeholder: '{"kty":"EC","crv":"P-256",…}', style: 'min-height:200px' });
+    jwk.value = store.get('jwk:jwk', '');
+    const status = el('div', { class: 'status' });
+
+    function getUsages(alg, isPriv) {
+      if (alg.name === 'RSA-OAEP') return isPriv ? ['decrypt'] : ['encrypt'];
+      return isPriv ? ['sign'] : ['verify'];
+    }
+    async function pemToJwk() {
+      try {
+        const p = pem.value.trim();
+        if (!p) { jwk.value = ''; status.textContent = ''; return; }
+        const m = p.match(/-----BEGIN ([^-]+)-----/);
+        if (!m) throw new Error('no PEM header');
+        const label = m[1].trim();
+        const buf = pemToArrayBuffer(p);
+        const alg = algMap[algSel.value];
+        let kind, isPriv;
+        if (label.includes('PRIVATE')) { kind = 'pkcs8'; isPriv = true; }
+        else if (label.includes('PUBLIC')) { kind = 'spki'; isPriv = false; }
+        else throw new Error('unsupported PEM label: ' + label);
+        const k = await crypto.subtle.importKey(kind, buf, alg, true, getUsages(alg, isPriv));
+        const out = await crypto.subtle.exportKey('jwk', k);
+        jwk.value = JSON.stringify(out, null, 2);
+        store.set('jwk:jwk', jwk.value);
+        status.textContent = '✓ PEM → JWK (' + (isPriv ? 'private' : 'public') + ')'; status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    async function jwkToPem() {
+      try {
+        const s = jwk.value.trim();
+        if (!s) { pem.value = ''; status.textContent = ''; return; }
+        const j = JSON.parse(s);
+        const alg = algMap[algSel.value];
+        const isPriv = !!j.d;
+        const k = await crypto.subtle.importKey('jwk', j, alg, true, getUsages(alg, isPriv));
+        const fmt = isPriv ? 'pkcs8' : 'spki';
+        const buf = await crypto.subtle.exportKey(fmt, k);
+        pem.value = arrayBufferToPem(buf, isPriv ? 'PRIVATE KEY' : 'PUBLIC KEY');
+        store.set('jwk:pem', pem.value);
+        status.textContent = '✓ JWK → PEM (' + (isPriv ? 'private' : 'public') + ')'; status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    pem.addEventListener('input', () => { store.set('jwk:pem', pem.value); pemToJwk(); });
+    jwk.addEventListener('input', () => { store.set('jwk:jwk', jwk.value); /* don't auto-convert back, only on button */ });
+    algSel.onchange = () => { store.set('jwk:alg', algSel.value); if (pem.value.trim()) pemToJwk(); };
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Algorithm hint'), algSel,
+        el('button', { class: 'btn', onclick: pemToJwk }, 'PEM → JWK'),
+        el('button', { class: 'btn', onclick: jwkToPem }, 'JWK → PEM'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'row' },
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'PEM'), pem),
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'JWK'), jwk)
+      )
+    ));
+    if (pem.value.trim()) pemToJwk();
+  }
+});
+
+/* ---------- HAR Viewer ---------- */
+MODULES.push({
+  id: 'har',
+  name: 'HAR Viewer',
+  icon: 'ha',
+  category: 'Text & Data',
+  desc: 'Drop a .har file → request waterfall + request/response detail. Read-only.',
+  keywords: ['har','http archive','waterfall','network','devtools','request','response','timing'],
+  init(c) {
+    c.innerHTML = '';
+    const fileInput = el('input', { type: 'file', accept: '.har,.json' });
+    const status = el('div', { class: 'status' });
+    const summary = el('div', { class: 'kv' });
+    const filter = el('input', { type: 'text', placeholder: 'Filter (URL / method / status — substring)' });
+    const list = el('div');
+    list.style.cssText = 'display:flex;flex-direction:column;gap:2px;max-height:540px;overflow:auto;border:1px solid var(--border);border-radius:5px';
+    const detail = el('pre', { class: 'pre-out', style: 'max-height:520px' });
+
+    let entries = [];
+    function statusColor(s) {
+      if (s >= 500) return 'var(--err)';
+      if (s >= 400) return '#fb923c';
+      if (s >= 300) return 'var(--warn)';
+      if (s >= 200) return 'var(--ok)';
+      return 'var(--text-faint)';
+    }
+    function render() {
+      list.innerHTML = '';
+      const q = filter.value.trim().toLowerCase();
+      const filtered = entries.filter(e => {
+        if (!q) return true;
+        return (e.request.url + ' ' + e.request.method + ' ' + (e.response.status || '')).toLowerCase().includes(q);
+      });
+      if (!filtered.length) { list.appendChild(el('div', { class: 'ref-empty' }, 'No matches')); return; }
+      const t0 = Math.min(...filtered.map(e => new Date(e.startedDateTime).getTime()));
+      const tMax = Math.max(...filtered.map(e => new Date(e.startedDateTime).getTime() + (e.time || 0)));
+      const span = Math.max(1, tMax - t0);
+      filtered.forEach((e, i) => {
+        const start = new Date(e.startedDateTime).getTime() - t0;
+        const dur = e.time || 0;
+        const left = (start / span) * 100;
+        const w = Math.max(0.5, (dur / span) * 100);
+        const row = el('div', { style: 'display:flex;gap:8px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px' });
+        row.appendChild(el('span', { style: 'min-width:40px;color:var(--text-faint)' }, e.request.method));
+        row.appendChild(el('span', { style: 'min-width:50px;color:' + statusColor(e.response.status) }, String(e.response.status || '—')));
+        const url = e.request.url.length > 80 ? e.request.url.slice(0, 77) + '…' : e.request.url;
+        row.appendChild(el('span', { style: 'flex:1;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, url));
+        row.appendChild(el('span', { style: 'min-width:60px;text-align:right;color:var(--text-faint)' }, Math.round(dur) + 'ms'));
+        const bar = el('div', { style: 'width:200px;position:relative;height:10px;background:var(--bg-3);border-radius:2px' });
+        const fill = el('div', { style: 'position:absolute;top:0;left:' + left + '%;width:' + w + '%;height:100%;background:var(--accent);border-radius:2px' });
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        row.onclick = () => { showDetail(e); document.querySelectorAll('.har-active').forEach(n => n.classList.remove('har-active')); row.classList.add('har-active'); row.style.background = 'var(--bg-3)'; };
+        list.appendChild(row);
+      });
+    }
+    function showDetail(e) {
+      const parts = [];
+      parts.push('=== Request ===');
+      parts.push(e.request.method + ' ' + e.request.url + ' ' + (e.request.httpVersion || ''));
+      (e.request.headers || []).forEach(h => parts.push(h.name + ': ' + h.value));
+      if (e.request.postData && e.request.postData.text) {
+        parts.push(''); parts.push('-- body --');
+        parts.push(e.request.postData.text);
+      }
+      parts.push(''); parts.push('=== Response ===');
+      parts.push((e.response.httpVersion || '') + ' ' + e.response.status + ' ' + (e.response.statusText || ''));
+      (e.response.headers || []).forEach(h => parts.push(h.name + ': ' + h.value));
+      if (e.response.content && e.response.content.text) {
+        parts.push(''); parts.push('-- body (' + (e.response.content.mimeType || '?') + ', ' + (e.response.content.size || 0) + ' bytes) --');
+        const txt = e.response.content.text;
+        parts.push(txt.length > 4000 ? txt.slice(0, 4000) + '\n…[truncated]' : txt);
+      }
+      parts.push(''); parts.push('=== Timing (ms) ===');
+      const t = e.timings || {};
+      Object.entries(t).forEach(([k, v]) => parts.push('  ' + k.padEnd(12) + ' ' + v));
+      detail.textContent = parts.join('\n');
+    }
+    function loadHar(har) {
+      try {
+        entries = (har.log && har.log.entries) || [];
+        summary.innerHTML = '';
+        const totalTime = entries.reduce((s, e) => s + (e.time || 0), 0);
+        const totalBytes = entries.reduce((s, e) => s + (e.response.content?.size || 0), 0);
+        const errors = entries.filter(e => e.response.status >= 400).length;
+        const creator = (har.log && har.log.creator) || {};
+        [
+          ['entries', entries.length],
+          ['total time (sum)', Math.round(totalTime) + ' ms'],
+          ['total bytes', totalBytes.toLocaleString()],
+          ['errors (4xx/5xx)', errors],
+          ['creator', (creator.name || '?') + ' ' + (creator.version || '')],
+        ].forEach(([k, v]) => {
+          summary.appendChild(el('div', { class: 'k' }, k));
+          summary.appendChild(el('div', { class: 'v' + (k === 'errors (4xx/5xx)' && v > 0 ? ' err' : ' ok') }, String(v)));
+        });
+        status.textContent = '✓ loaded ' + entries.length + ' entries'; status.className = 'status ok';
+        render();
+      } catch (e) {
+        status.textContent = '✗ ' + e.message; status.className = 'status err';
+      }
+    }
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      try { const har = JSON.parse(await f.text()); loadHar(har); }
+      catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    });
+    filter.addEventListener('input', render);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Drop .har file'), fileInput,
+        el('span', { class: 'spacer' }), status
+      ),
+      summary,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Filter'), filter,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Requests (click for detail)'),
+      list,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Detail'), detail
+    ));
+  }
+});
+
+/* ---------- MAC OUI lookup (curated common-vendor list) ---------- */
+const MAC_OUI = {
+  '000C29': 'VMware, Inc.', '005056': 'VMware, Inc.', '001C14': 'VMware, Inc.',
+  '080027': 'PCS Systemtechnik (VirtualBox)',
+  '525400': 'QEMU/KVM virtual NIC',
+  '001A11': 'Google, Inc.', 'F4F5D8': 'Google, Inc.', '3C5AB4': 'Google, Inc.',
+  'F8FFC2': 'Apple, Inc.', '001124': 'Apple, Inc.', 'A4C361': 'Apple, Inc.', '8C8590': 'Apple, Inc.', 'DC2B61': 'Apple, Inc.', '88E9FE': 'Apple, Inc.', '687F74': 'Apple, Inc.',
+  'B827EB': 'Raspberry Pi Foundation', 'DCA632': 'Raspberry Pi Foundation', 'E45F01': 'Raspberry Pi Foundation', '2CCF67': 'Raspberry Pi Foundation',
+  '001B63': 'Microsoft Corp.', '7C1E52': 'Microsoft Corp.', '281878': 'Microsoft Corp.',
+  '001E58': 'Samsung Electronics', '38AA3C': 'Samsung Electronics', '5C0A5B': 'Samsung Electronics',
+  '00179A': 'D-Link Corp.', '14D64D': 'D-Link Corp.',
+  'F81A67': 'TP-Link Technologies', 'E894F6': 'TP-Link Technologies', '50C7BF': 'TP-Link Technologies',
+  '001D7E': 'Cisco-Linksys', '0019E0': 'Cisco Systems', 'F4EA67': 'Cisco Systems', 'D0D0FD': 'Cisco Systems',
+  '00163E': 'Xensource, Inc.',
+  '001C42': 'Parallels, Inc.',
+  '0050C2': 'IEEE Registration Authority',
+  '94E6F7': 'Intel Corporate', '5C514F': 'Intel Corporate', 'A4C3F0': 'Intel Corporate',
+  'AC1F6B': 'Super Micro Computer, Inc.',
+  '001517': 'Intel Corporate',
+  '001B21': 'Intel Corporate',
+  'B4B52F': 'Hewlett Packard',
+  'A0481C': 'Wistron InfoComm',
+  'F0DEB9': 'Sony Interactive Entertainment (PlayStation)',
+  '6CFFCE': 'Nintendo',
+  '7CD30A': 'Amazon Technologies (Kindle/Echo)', 'F8AAB6': 'Amazon Technologies',
+  '24FD52': 'Roku, Inc.',
+  '009027': 'Intel Corporation',
+  '004481': 'Lenovo Mobile',
+  'B07994': 'Xiaomi Communications',
+  '74DA88': 'TP-Link Technologies',
+  '001A2B': 'Ayecom Technology',
+  '001A8A': 'Texas Instruments',
+  '001E8C': 'Asustek Computer Inc.',
+  '0024E8': 'Dell Inc.', '180373': 'Dell Inc.',
+  '001A4B': 'Hewlett-Packard',
+  '78E7D1': 'Hewlett Packard',
+  '001E0B': 'Hewlett Packard',
+  '0026B9': 'Dell Inc.',
+  'F45C89': 'Apple, Inc.',
+  'E0C767': 'Apple, Inc.',
+  '5CF938': 'Apple, Inc.',
+  '40A6D9': 'Apple, Inc.',
+  '784F43': 'Apple, Inc.',
+  'A45E60': 'Apple, Inc.',
+  'D89695': 'Apple, Inc.',
+  'F02475': 'Apple, Inc.',
+  '34E2FD': 'Apple, Inc.',
+};
+
+MODULES.push({
+  id: 'oui',
+  name: 'MAC OUI',
+  icon: 'mc',
+  category: 'Reference',
+  desc: 'Look up MAC address prefixes against a curated common-vendor list. All offline.',
+  keywords: ['mac','oui','address','ieee','vendor','manufacturer','ethernet','network'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('input', { type: 'text', placeholder: 'MAC address (any format: AA:BB:CC:DD:EE:FF, aa-bb-cc-…, AABBCC…)' });
+    input.value = store.get('oui:input', 'B8:27:EB:12:34:56');
+    const search = el('input', { type: 'text', placeholder: 'Or search by vendor name…' });
+    const out = el('div', { class: 'kv' });
+    const matches = el('div', { class: 'kv' });
+    function normalize(s) { return s.replace(/[^0-9A-Fa-f]/g, '').toUpperCase(); }
+    function classify(mac) {
+      if (mac.length < 2) return [];
+      const first = parseInt(mac.slice(0, 2), 16);
+      const u_l = (first & 0x02) ? 'locally administered (random/virtual)' : 'globally unique (manufacturer-assigned)';
+      const ig = (first & 0x01) ? 'multicast / group' : 'unicast';
+      const flags = [];
+      if (mac.startsWith('FFFFFF')) flags.push('broadcast');
+      if (/^01005E/i.test(mac)) flags.push('IPv4 multicast');
+      if (/^3333/i.test(mac)) flags.push('IPv6 multicast');
+      return [u_l, ig, ...flags];
+    }
+    function update() {
+      out.innerHTML = ''; matches.innerHTML = '';
+      const raw = input.value;
+      store.set('oui:input', raw);
+      const norm = normalize(raw);
+      if (norm) {
+        const prefix = norm.slice(0, 6);
+        const vendor = MAC_OUI[prefix];
+        out.appendChild(el('div', { class: 'k' }, 'normalised'));
+        out.appendChild(el('div', { class: 'v' }, norm.match(/.{1,2}/g)?.join(':') || norm));
+        out.appendChild(el('div', { class: 'k' }, 'OUI (first 24 bits)'));
+        out.appendChild(el('div', { class: 'v' }, prefix));
+        out.appendChild(el('div', { class: 'k' }, 'vendor'));
+        out.appendChild(el('div', { class: 'v ' + (vendor ? 'ok' : 'warn') }, vendor || '(not in curated list — try ieee.org/oui)'));
+        classify(norm).forEach((f, i) => {
+          out.appendChild(el('div', { class: 'k' }, i === 0 ? 'flags' : ''));
+          out.appendChild(el('div', { class: 'v' }, f));
+        });
+      }
+      const q = search.value.trim().toLowerCase();
+      if (q) {
+        let count = 0;
+        for (const [p, v] of Object.entries(MAC_OUI)) {
+          if (v.toLowerCase().includes(q) || p.toLowerCase().includes(q)) {
+            matches.appendChild(el('div', { class: 'k' }, p));
+            matches.appendChild(el('div', { class: 'v' }, v));
+            if (++count > 50) break;
+          }
+        }
+        if (!count) {
+          matches.appendChild(el('div', { class: 'k' }, '—'));
+          matches.appendChild(el('div', { class: 'v warn' }, 'no matches in curated list'));
+        }
+      }
+    }
+    input.addEventListener('input', update);
+    search.addEventListener('input', update);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'MAC address'), input, out,
+      el('div', { class: 'label', style: 'margin-top:14px' }, 'Vendor search'), search, matches,
+      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:10px' }, 'Curated list of ' + Object.keys(MAC_OUI).length + ' common OUIs (virtualization, SBCs, popular hardware vendors). For a full lookup, see the IEEE OUI database.')
+    ));
+    update();
+  }
+});
+
+/* ---------- bcrypt (lazy CDN) ---------- */
+const BCRYPT_CDN = 'https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js';
+
+MODULES.push({
+  id: 'bcrypt',
+  name: 'bcrypt',
+  icon: 'bc',
+  category: 'Crypto & Security',
+  desc: 'Hash passwords with bcrypt and verify candidates. For testing your own auth flows.',
+  keywords: ['bcrypt','password','hash','verify','htpasswd','auth','salt','rounds','cost'],
+  init(c) {
+    c.innerHTML = '';
+    const pw = el('input', { type: 'text', placeholder: 'Password (or candidate)…' });
+    pw.value = store.get('bcrypt:pw', '');
+    const rounds = el('input', { type: 'number', min: '4', max: '15', value: store.get('bcrypt:rounds', '10'), style: 'max-width:80px' });
+    const hashInput = el('input', { type: 'text', placeholder: '$2a$10$… (bcrypt hash to verify)' });
+    hashInput.value = store.get('bcrypt:hash', '');
+    const hashOut = el('pre', { class: 'pre-out' });
+    const verifyOut = el('div', { class: 'status' });
+    const status = el('div', { class: 'status' });
+    const badge = el('div', { class: 'status' });
+
+    async function ensure() {
+      if (window.dcodeIO && window.dcodeIO.bcrypt) return window.dcodeIO.bcrypt;
+      if (window.bcrypt) return window.bcrypt;
+      badge.textContent = 'Loading bcryptjs…'; badge.className = 'status warn';
+      await loadScript(BCRYPT_CDN);
+      badge.textContent = '';
+      return window.dcodeIO?.bcrypt || window.bcrypt;
+    }
+    async function doHash() {
+      try {
+        const lib = await ensure();
+        status.textContent = 'Hashing…'; status.className = 'status warn';
+        await new Promise(r => setTimeout(r, 10));
+        const h = lib.hashSync(pw.value, +rounds.value || 10);
+        hashOut.textContent = h;
+        status.textContent = '✓ hashed (cost=' + rounds.value + ')'; status.className = 'status ok';
+        store.set('bcrypt:pw', pw.value); store.set('bcrypt:rounds', rounds.value);
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    async function doVerify() {
+      try {
+        const lib = await ensure();
+        const ok = lib.compareSync(pw.value, hashInput.value);
+        verifyOut.textContent = ok ? '✓ matches' : '✗ does NOT match';
+        verifyOut.className = 'status ' + (ok ? 'ok' : 'err');
+        store.set('bcrypt:hash', hashInput.value);
+      } catch (e) { verifyOut.textContent = '✗ ' + e.message; verifyOut.className = 'status err'; }
+    }
+    function htpasswdLine() {
+      if (!hashOut.textContent) return;
+      copy('user:' + hashOut.textContent);
+    }
+
+    c.appendChild(el('div', { class: 'col' },
+      badge,
+      el('div', { class: 'label' }, 'Password'), pw,
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        el('div', { class: 'label' }, 'Cost rounds'), rounds,
+        el('button', { class: 'btn btn-primary', onclick: doHash }, 'Hash'),
+        el('button', { class: 'btn', onclick: () => copy(hashOut.textContent) }, 'Copy hash'),
+        el('button', { class: 'btn', onclick: htpasswdLine }, 'Copy as htpasswd line'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Hash output'),
+      hashOut,
+      el('hr', { class: 'sep' }),
+      el('div', { class: 'label' }, 'Verify a hash'),
+      hashInput,
+      el('div', { class: 'btn-row', style: 'margin-top:8px' },
+        el('button', { class: 'btn', onclick: doVerify }, 'Verify against password above'),
+        el('span', { class: 'spacer' }), verifyOut
+      ),
+      el('div', { style: 'font-size:11.5px;color:var(--text-faint);margin-top:10px' }, 'bcryptjs lazy-loaded from jsDelivr. Cost 10 ≈ 100ms; cost 12 ≈ 400ms in-browser.')
+    ));
+  }
+});
+
+/* ============================================================
    APP SHELL
    ============================================================ */
 

@@ -5171,6 +5171,990 @@ MODULES.push({
 });
 
 /* ============================================================
+   PHASE 5 — Hexdump, Semver, CSS Specificity, JSON Schema,
+              Faker, ULID, Templates, License, CSP Builder
+   ============================================================ */
+
+/* ---------- Hexdump ---------- */
+MODULES.push({
+  id: 'hexdump',
+  name: 'Hexdump',
+  icon: 'hx',
+  category: 'Text & Data',
+  desc: 'Drop a file or paste text → hex + ASCII view. Search bytes, jump to offset.',
+  keywords: ['hex','hexdump','binary','bytes','dump','xxd','od','ascii','offset'],
+  init(c) {
+    c.innerHTML = '';
+    const fileInput = el('input', { type: 'file' });
+    const paste = el('textarea', { spellcheck: 'false', placeholder: 'Or paste text…', style: 'min-height:60px' });
+    paste.value = store.get('hexdump:text', 'BOFH — bytes never leave your browser.');
+    const widthSel = el('select');
+    [8, 16, 24, 32].forEach(w => widthSel.appendChild(el('option', { value: w }, String(w))));
+    widthSel.value = store.get('hexdump:width', '16');
+    const search = el('input', { type: 'text', placeholder: 'Byte search: "FF 00" or "GET " (text in quotes)' });
+    const jump = el('input', { type: 'text', placeholder: 'Jump to offset (dec or 0x…)', style: 'max-width:240px' });
+    const status = el('div', { class: 'status' });
+    const out = el('pre', { class: 'pre-out', style: 'max-height:520px;font-size:12px' });
+
+    let bytes = new Uint8Array();
+    function parseSearch(q) {
+      q = q.trim(); if (!q) return null;
+      if (q.startsWith('"') && q.endsWith('"')) {
+        return new TextEncoder().encode(q.slice(1, -1));
+      }
+      const parts = q.split(/\s+/);
+      const arr = [];
+      for (const p of parts) {
+        const n = parseInt(p, 16);
+        if (isNaN(n) || n < 0 || n > 255) return null;
+        arr.push(n);
+      }
+      return new Uint8Array(arr);
+    }
+    function findAll(hay, needle) {
+      const hits = [];
+      if (!needle || !needle.length) return hits;
+      outer: for (let i = 0; i <= hay.length - needle.length; i++) {
+        for (let j = 0; j < needle.length; j++) if (hay[i+j] !== needle[j]) continue outer;
+        hits.push(i);
+      }
+      return hits;
+    }
+    function render(focusOffset) {
+      const w = +widthSel.value;
+      const needle = parseSearch(search.value);
+      const hits = needle ? findAll(bytes, needle) : [];
+      const inHit = new Uint8Array(bytes.length);
+      hits.forEach(h => { for (let i = 0; i < needle.length; i++) inHit[h+i] = 1; });
+      const lines = [];
+      const offsetWidth = Math.max(8, bytes.length.toString(16).length);
+      for (let off = 0; off < bytes.length; off += w) {
+        const slice = bytes.subarray(off, Math.min(off + w, bytes.length));
+        let hex = '', asc = '';
+        for (let i = 0; i < w; i++) {
+          if (i < slice.length) {
+            const b = slice[i];
+            const hi = inHit[off+i] ? '\x01' : '';
+            const ho = inHit[off+i] ? '\x02' : '';
+            hex += hi + b.toString(16).padStart(2, '0') + ho + ' ';
+            asc += hi + (b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : '.') + ho;
+          } else {
+            hex += '   ';
+            asc += ' ';
+          }
+          if (i === w/2 - 1) hex += ' ';
+        }
+        lines.push(off.toString(16).padStart(offsetWidth, '0') + '  ' + hex + ' ' + asc);
+      }
+      out.innerHTML = '';
+      const text = lines.join('\n');
+      // Convert markers into spans
+      const parts = text.split(/\x01|\x02/);
+      let mark = false;
+      const HL = '<span style="background:var(--accent);color:#000;border-radius:2px">';
+      let html = '';
+      for (let i = 0; i < parts.length; i++) {
+        html += escapeHtml(parts[i]);
+        if (i < parts.length - 1) {
+          mark = !mark;
+          html += mark ? HL : '</span>';
+        }
+      }
+      out.innerHTML = html;
+      status.textContent = '✓ ' + bytes.length.toLocaleString() + ' bytes' + (needle ? ' · ' + hits.length + ' matches' : '');
+      status.className = 'status ' + (bytes.length ? 'ok' : '');
+      if (focusOffset != null) {
+        const lineIdx = Math.floor(focusOffset / w);
+        const lineH = parseFloat(getComputedStyle(out).lineHeight) || 18;
+        out.scrollTop = Math.max(0, lineIdx * lineH - out.clientHeight/2);
+      }
+    }
+    function setText(s) {
+      bytes = new TextEncoder().encode(s);
+      store.set('hexdump:text', s);
+      render();
+    }
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; if (!f) return;
+      bytes = new Uint8Array(await f.arrayBuffer());
+      paste.value = '';
+      render();
+    });
+    paste.addEventListener('input', () => setText(paste.value));
+    widthSel.onchange = () => { store.set('hexdump:width', widthSel.value); render(); };
+    search.addEventListener('input', () => render());
+    jump.addEventListener('change', () => {
+      const v = jump.value.trim();
+      const n = v.startsWith('0x') ? parseInt(v, 16) : parseInt(v, 10);
+      if (!isNaN(n) && n >= 0 && n < bytes.length) render(n);
+    });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'File'), fileInput,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Width'), widthSel,
+        el('span', { class: 'spacer' }), status
+      ),
+      paste,
+      el('div', { class: 'btn-row', style: 'margin-top:8px' }, search, jump),
+      out
+    ));
+    setText(paste.value);
+  }
+});
+
+/* ---------- Semver ---------- */
+function semverParse(v) {
+  if (typeof v !== 'string') return null;
+  const m = v.trim().replace(/^v/, '').match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/);
+  if (!m) return null;
+  return { major: +m[1], minor: +m[2], patch: +m[3], prerelease: m[4] ? m[4].split('.') : [], build: m[5] || '' };
+}
+function semverCompare(a, b) {
+  for (const k of ['major','minor','patch']) if (a[k] !== b[k]) return a[k] - b[k];
+  if (!a.prerelease.length && b.prerelease.length) return 1;
+  if (a.prerelease.length && !b.prerelease.length) return -1;
+  for (let i = 0; i < Math.max(a.prerelease.length, b.prerelease.length); i++) {
+    const x = a.prerelease[i], y = b.prerelease[i];
+    if (x === undefined) return -1;
+    if (y === undefined) return 1;
+    const xn = /^\d+$/.test(x), yn = /^\d+$/.test(y);
+    if (xn && yn) { const d = +x - +y; if (d) return d; }
+    else if (xn) return -1;
+    else if (yn) return 1;
+    else if (x !== y) return x < y ? -1 : 1;
+  }
+  return 0;
+}
+function semverBump(v, kind, preid) {
+  const p = semverParse(v); if (!p) return null;
+  if (kind === 'major') return (p.major+1) + '.0.0';
+  if (kind === 'minor') return p.major + '.' + (p.minor+1) + '.0';
+  if (kind === 'patch') return p.major + '.' + p.minor + '.' + (p.patch+1);
+  if (kind === 'prerelease') {
+    const id = preid || 'rc';
+    if (p.prerelease.length && p.prerelease[0] === id) {
+      const last = p.prerelease[p.prerelease.length-1];
+      const next = /^\d+$/.test(last) ? p.prerelease.slice(0,-1).concat(+last+1) : p.prerelease.concat(0);
+      return p.major+'.'+p.minor+'.'+p.patch+'-'+next.join('.');
+    }
+    return p.major+'.'+p.minor+'.'+(p.patch+1)+'-'+id+'.0';
+  }
+  return null;
+}
+function semverSatisfies(v, range) {
+  const p = semverParse(v); if (!p) return false;
+  // Support: exact, >=, >, <=, <, ^x.y.z, ~x.y.z, x.y.z, 1.x, 1.2.x, *, ||  AND  space-separated AND
+  const groups = range.split('||').map(s => s.trim()).filter(Boolean);
+  return groups.some(g => g.split(/\s+/).every(p => testRange(v, p)));
+  function testRange(v, r) {
+    r = r.trim();
+    if (r === '*' || r === '') return true;
+    const m1 = r.match(/^(>=|<=|>|<|=)?\s*v?(\d+)(?:\.(\d+|x|X|\*))?(?:\.(\d+|x|X|\*))?(?:-([0-9A-Za-z.-]+))?$/);
+    if (r[0] === '^' || r[0] === '~') {
+      const base = semverParse(r.slice(1).replace(/^v/, ''));
+      if (!base) return false;
+      const cmp = semverCompare(semverParse(v), base);
+      if (cmp < 0) return false;
+      if (r[0] === '^') {
+        if (base.major > 0) return semverParse(v).major === base.major;
+        if (base.minor > 0) return semverParse(v).major === 0 && semverParse(v).minor === base.minor;
+        return semverParse(v).major === 0 && semverParse(v).minor === 0 && semverParse(v).patch === base.patch;
+      }
+      // ~x.y.z → ≥x.y.z <x.(y+1).0
+      const pv = semverParse(v);
+      return pv.major === base.major && pv.minor === base.minor;
+    }
+    if (m1) {
+      const op = m1[1] || '=';
+      const major = +m1[2];
+      const minorRaw = m1[3], patchRaw = m1[4];
+      const minorWild = minorRaw === undefined || /^[xX*]$/.test(minorRaw);
+      const patchWild = patchRaw === undefined || /^[xX*]$/.test(patchRaw);
+      const minor = minorWild ? 0 : +minorRaw;
+      const patch = patchWild ? 0 : +patchRaw;
+      const target = { major, minor, patch, prerelease: m1[5] ? m1[5].split('.') : [] };
+      const pv = semverParse(v); if (!pv) return false;
+      const c = semverCompare(pv, target);
+      if (op === '=') {
+        if (minorWild) return pv.major === major;
+        if (patchWild) return pv.major === major && pv.minor === minor;
+        return c === 0;
+      }
+      if (op === '>') return c > 0;
+      if (op === '>=') return c >= 0;
+      if (op === '<') return c < 0;
+      if (op === '<=') return c <= 0;
+    }
+    return false;
+  }
+}
+
+MODULES.push({
+  id: 'semver',
+  name: 'Semver',
+  icon: 'sv',
+  category: 'Converters & Generators',
+  desc: 'Parse, bump, compare, and check range satisfaction.',
+  keywords: ['semver','version','range','satisfies','bump','major','minor','patch','prerelease','npm'],
+  init(c) {
+    c.innerHTML = '';
+    const v1 = el('input', { type: 'text', placeholder: 'e.g. 1.2.3-rc.4' });
+    v1.value = store.get('semver:v1', '1.2.3');
+    const v2 = el('input', { type: 'text', placeholder: 'compare to (optional)' });
+    v2.value = store.get('semver:v2', '1.3.0');
+    const range = el('input', { type: 'text', placeholder: 'range: ^1.2.3  |  ~1.2.3  |  >=1.0.0 <2.0.0  |  1.x' });
+    range.value = store.get('semver:range', '^1.2.0');
+    const preId = el('input', { type: 'text', placeholder: 'prerelease id (rc, beta…)', style: 'max-width:200px' });
+    preId.value = store.get('semver:preid', 'rc');
+    const parseOut = el('div', { class: 'kv' });
+    const cmpOut = el('div', { class: 'kv' });
+    const rngOut = el('div', { class: 'kv' });
+    const bumpOut = el('div', { class: 'kv' });
+    function update() {
+      store.set('semver:v1', v1.value);
+      store.set('semver:v2', v2.value);
+      store.set('semver:range', range.value);
+      store.set('semver:preid', preId.value);
+      parseOut.innerHTML = ''; cmpOut.innerHTML = ''; rngOut.innerHTML = ''; bumpOut.innerHTML = '';
+      const p1 = semverParse(v1.value);
+      if (p1) {
+        [['major', p1.major], ['minor', p1.minor], ['patch', p1.patch],
+         ['prerelease', p1.prerelease.join('.') || '—'], ['build', p1.build || '—']].forEach(([k,vv]) => {
+          parseOut.appendChild(el('div', { class: 'k' }, k));
+          parseOut.appendChild(el('div', { class: 'v ok' }, String(vv)));
+        });
+      } else {
+        parseOut.appendChild(el('div', { class: 'k' }, 'parse'));
+        parseOut.appendChild(el('div', { class: 'v err' }, 'invalid semver'));
+      }
+      if (p1 && v2.value.trim()) {
+        const p2 = semverParse(v2.value);
+        if (p2) {
+          const c = semverCompare(p1, p2);
+          const rel = c < 0 ? v1.value + ' < ' + v2.value : c > 0 ? v1.value + ' > ' + v2.value : 'equal';
+          cmpOut.appendChild(el('div', { class: 'k' }, 'comparison'));
+          cmpOut.appendChild(el('div', { class: 'v ' + (c === 0 ? 'ok' : 'warn') }, rel));
+        }
+      }
+      if (p1 && range.value.trim()) {
+        const ok = semverSatisfies(v1.value, range.value);
+        rngOut.appendChild(el('div', { class: 'k' }, 'satisfies range'));
+        rngOut.appendChild(el('div', { class: 'v ' + (ok ? 'ok' : 'err') }, ok ? '✓ ' + v1.value + ' ∈ ' + range.value : '✗ ' + v1.value + ' ∉ ' + range.value));
+      }
+      if (p1) {
+        ['major','minor','patch','prerelease'].forEach(kind => {
+          const next = semverBump(v1.value, kind, preId.value || 'rc');
+          bumpOut.appendChild(el('div', { class: 'k' }, kind));
+          const vv = el('div', { class: 'v' }, next || '—');
+          vv.style.cursor = 'pointer'; vv.title = 'Click to copy';
+          vv.onclick = () => copy(next);
+          bumpOut.appendChild(vv);
+        });
+      }
+    }
+    [v1, v2, range, preId].forEach(i => i.addEventListener('input', update));
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Version'), v1, parseOut,
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Compare to'), v2, cmpOut,
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Range check'), range, rngOut,
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Bump (prerelease id)'), preId, bumpOut
+    ));
+    update();
+  }
+});
+
+/* ---------- CSS Specificity ---------- */
+function cssSpecificity(selector) {
+  // Returns [a, b, c] = inline (always 0 here), [ids, classes/attrs/pseudo-classes, types/pseudo-elements]
+  let s = selector.trim();
+  // Strip strings & balanced bracket contents temporarily
+  s = s.replace(/\\./g, '__');
+  s = s.replace(/"[^"]*"|'[^']*'/g, '""');
+  // Handle :not(), :is(), :where(), :has() — :where counts as 0, others use highest specificity inside
+  function strip(name, inner) {
+    if (name === 'where') return [0,0,0];
+    const parts = inner.split(',').map(p => p.trim()).map(cssSpecificity);
+    return parts.reduce((max, cur) => {
+      for (let i = 0; i < 3; i++) if (cur[i] > max[i]) return cur;
+      return max;
+    }, [0,0,0]);
+  }
+  const nested = [];
+  s = s.replace(/:(not|is|where|has)\(([^)]*)\)/g, (_, n, inner) => {
+    nested.push([n, inner]);
+    return '\x00';
+  });
+  let a = 0, b = 0, cc = 0;
+  // ids
+  s = s.replace(/#[\w-]+/g, () => { a++; return ''; });
+  // classes, attrs, pseudo-classes
+  s = s.replace(/\[[^\]]*\]/g, () => { b++; return ''; });
+  s = s.replace(/\.[\w-]+/g, () => { b++; return ''; });
+  s = s.replace(/::[a-zA-Z-]+/g, () => { cc++; return ''; });
+  s = s.replace(/:[a-zA-Z-]+(\([^)]*\))?/g, () => { b++; return ''; });
+  // types / elements
+  s = s.replace(/[a-zA-Z][\w-]*/g, () => { cc++; return ''; });
+  // Add nested contributions
+  nested.forEach(([n, inner]) => {
+    const v = strip(n, inner);
+    a += v[0]; b += v[1]; cc += v[2];
+  });
+  return [a, b, cc];
+}
+
+MODULES.push({
+  id: 'cssspec',
+  name: 'CSS Specificity',
+  icon: 'cs',
+  category: 'Converters & Generators',
+  desc: 'Paste CSS selectors. Get specificity scores and a breakdown.',
+  keywords: ['css','specificity','selector','cascade','priority','important'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'One selector per line…', style: 'min-height:140px' });
+    input.value = store.get('cssspec:input', '#header .nav > a.active\nul li:nth-child(2n+1)\n.btn.btn-primary\n[type="text"]:focus\n:where(.theme-dark) .card\n:is(h1, h2, .title)');
+    const out = el('div', { class: 'kv' });
+    function update() {
+      out.innerHTML = '';
+      const lines = input.value.split('\n').map(l => l.trim()).filter(Boolean);
+      const scored = lines.map(l => ({ sel: l, score: cssSpecificity(l) }));
+      // Sort indicator
+      const sorted = [...scored].sort((x, y) => {
+        for (let i = 0; i < 3; i++) if (x.score[i] !== y.score[i]) return y.score[i] - x.score[i];
+        return 0;
+      });
+      const winnerSel = sorted[0] && sorted[0].sel;
+      scored.forEach(({ sel, score }) => {
+        out.appendChild(el('div', { class: 'k' }, sel));
+        const txt = score.join(',') + '  (' + score[0]+' id · '+score[1]+' class/attr · '+score[2]+' type)';
+        const cls = sel === winnerSel ? 'ok' : '';
+        out.appendChild(el('div', { class: 'v ' + cls }, txt + (sel === winnerSel && scored.length > 1 ? '  — wins' : '')));
+      });
+      store.set('cssspec:input', input.value);
+    }
+    input.addEventListener('input', update);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Selectors'), input,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Specificity (a,b,c — higher wins; :where = 0, :is/:not/:has use highest inside)'),
+      out
+    ));
+    update();
+  }
+});
+
+/* ---------- JSON Schema (infer / validate / sample) ---------- */
+function jsonInferSchema(v) {
+  if (v === null) return { type: 'null' };
+  if (Array.isArray(v)) {
+    const items = v.map(jsonInferSchema);
+    const merged = items.reduce((a, b) => jsonMergeSchema(a, b), items[0] || {});
+    return { type: 'array', items: merged };
+  }
+  if (typeof v === 'object') {
+    const props = {};
+    const required = [];
+    for (const k of Object.keys(v)) { props[k] = jsonInferSchema(v[k]); required.push(k); }
+    return { type: 'object', properties: props, required };
+  }
+  if (typeof v === 'string') return { type: 'string' };
+  if (typeof v === 'number') return { type: Number.isInteger(v) ? 'integer' : 'number' };
+  if (typeof v === 'boolean') return { type: 'boolean' };
+  return {};
+}
+function jsonMergeSchema(a, b) {
+  if (!a) return b; if (!b) return a;
+  if (a.type === b.type) {
+    if (a.type === 'object') {
+      const props = { ...(a.properties || {}) };
+      for (const k of Object.keys(b.properties || {})) props[k] = jsonMergeSchema(props[k], b.properties[k]);
+      const req = (a.required || []).filter(k => (b.required || []).includes(k));
+      return { type: 'object', properties: props, required: req };
+    }
+    if (a.type === 'array') return { type: 'array', items: jsonMergeSchema(a.items, b.items) };
+    return a;
+  }
+  const types = new Set([].concat(a.type || [], b.type || []));
+  return { type: [...types] };
+}
+function jsonValidate(value, schema, path = '$') {
+  const errors = [];
+  const t = schema.type;
+  function typeOf(v) {
+    if (v === null) return 'null';
+    if (Array.isArray(v)) return 'array';
+    if (Number.isInteger(v)) return 'integer';
+    return typeof v;
+  }
+  const actual = typeOf(value);
+  if (t) {
+    const ok = Array.isArray(t) ? t.includes(actual) || (t.includes('number') && actual === 'integer') : (t === actual) || (t === 'number' && actual === 'integer');
+    if (!ok) { errors.push({ path, msg: 'expected ' + (Array.isArray(t) ? t.join('|') : t) + ', got ' + actual }); return errors; }
+  }
+  if (schema.enum && !schema.enum.some(v => JSON.stringify(v) === JSON.stringify(value))) {
+    errors.push({ path, msg: 'not in enum' });
+  }
+  if (actual === 'string') {
+    if (schema.minLength != null && value.length < schema.minLength) errors.push({ path, msg: 'length < ' + schema.minLength });
+    if (schema.maxLength != null && value.length > schema.maxLength) errors.push({ path, msg: 'length > ' + schema.maxLength });
+    if (schema.pattern && !new RegExp(schema.pattern).test(value)) errors.push({ path, msg: 'no match for /' + schema.pattern + '/' });
+  }
+  if (actual === 'integer' || actual === 'number') {
+    if (schema.minimum != null && value < schema.minimum) errors.push({ path, msg: '< minimum ' + schema.minimum });
+    if (schema.maximum != null && value > schema.maximum) errors.push({ path, msg: '> maximum ' + schema.maximum });
+  }
+  if (actual === 'array' && schema.items) {
+    value.forEach((v, i) => errors.push(...jsonValidate(v, schema.items, path + '[' + i + ']')));
+  }
+  if (actual === 'object') {
+    (schema.required || []).forEach(k => { if (!(k in value)) errors.push({ path: path + '.' + k, msg: 'required' }); });
+    for (const k of Object.keys(value)) {
+      const sub = (schema.properties || {})[k];
+      if (sub) errors.push(...jsonValidate(value[k], sub, path + '.' + k));
+    }
+  }
+  return errors;
+}
+function jsonSample(schema) {
+  const t = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+  if (schema.enum) return schema.enum[0];
+  if (t === 'string') return schema.pattern ? '(matches /' + schema.pattern + '/)' : 'string';
+  if (t === 'integer') return schema.minimum ?? 0;
+  if (t === 'number') return schema.minimum ?? 0;
+  if (t === 'boolean') return true;
+  if (t === 'null') return null;
+  if (t === 'array') return [jsonSample(schema.items || {})];
+  if (t === 'object') {
+    const o = {};
+    for (const k of Object.keys(schema.properties || {})) o[k] = jsonSample(schema.properties[k]);
+    return o;
+  }
+  return null;
+}
+
+MODULES.push({
+  id: 'jsonschema',
+  name: 'JSON Schema',
+  icon: 'js',
+  category: 'Text & Data',
+  desc: 'Infer a schema from JSON, validate against a schema, generate a sample.',
+  keywords: ['json','schema','infer','validate','sample','draft','jsonschema'],
+  init(c) {
+    c.innerHTML = '';
+    const mode = el('select');
+    [['infer','Infer schema from JSON'],['validate','Validate JSON against schema'],['sample','Sample from schema']].forEach(([v, l]) => mode.appendChild(el('option', { value: v }, l)));
+    mode.value = store.get('jsonschema:mode', 'infer');
+    const left = el('textarea', { spellcheck: 'false', placeholder: 'JSON…', style: 'min-height:180px' });
+    const right = el('textarea', { spellcheck: 'false', placeholder: 'Schema…', style: 'min-height:180px' });
+    left.value = store.get('jsonschema:json', '{\n  "user": "ada",\n  "age": 42,\n  "tags": ["math","logic"],\n  "active": true\n}');
+    right.value = store.get('jsonschema:schema', '');
+    const out = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+    function run() {
+      store.set('jsonschema:mode', mode.value);
+      store.set('jsonschema:json', left.value);
+      store.set('jsonschema:schema', right.value);
+      try {
+        if (mode.value === 'infer') {
+          const data = JSON.parse(left.value);
+          const schema = jsonInferSchema(data);
+          const s = { $schema: 'https://json-schema.org/draft/2020-12/schema', ...schema };
+          out.textContent = JSON.stringify(s, null, 2);
+          status.textContent = '✓ inferred'; status.className = 'status ok';
+        } else if (mode.value === 'validate') {
+          const data = JSON.parse(left.value);
+          const schema = JSON.parse(right.value);
+          const errs = jsonValidate(data, schema);
+          if (!errs.length) { out.textContent = '✓ valid against schema'; status.textContent = '✓ valid'; status.className = 'status ok'; }
+          else { out.textContent = errs.map(e => '✗ ' + e.path + ' — ' + e.msg).join('\n'); status.textContent = '✗ ' + errs.length + ' errors'; status.className = 'status err'; }
+        } else if (mode.value === 'sample') {
+          const schema = JSON.parse(right.value || left.value);
+          out.textContent = JSON.stringify(jsonSample(schema), null, 2);
+          status.textContent = '✓ sample'; status.className = 'status ok';
+        }
+      } catch (e) {
+        out.textContent = ''; status.textContent = '✗ ' + e.message; status.className = 'status err';
+      }
+    }
+    mode.onchange = run;
+    left.addEventListener('input', run);
+    right.addEventListener('input', run);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Mode'), mode,
+        el('button', { class: 'btn', onclick: () => copy(out.textContent) }, 'Copy output'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'row' },
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'JSON / input'), left),
+        el('div', { class: 'col' }, el('div', { class: 'label' }, 'Schema'), right)
+      ),
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Output'), out
+    ));
+    run();
+  }
+});
+
+/* ---------- Faker / Mock JSON ---------- */
+const FAKER_NAMES = ['Ada','Linus','Grace','Alan','Margaret','Donald','Barbara','Brian','Edsger','Radia','Tim','Ken','Dennis','Niklaus','Bjarne','Yukihiro','Anders','Guido','Larry','James','Rasmus','John','Rich','Joe','Jacinda','Sundar','Satya','Sheryl','Indira','Mahatma','Rabindranath','Sojourner','Ida','Maya','Toni'];
+const FAKER_SUR = ['Lovelace','Torvalds','Hopper','Turing','Hamilton','Knuth','Liskov','Kernighan','Dijkstra','Perlman','Berners-Lee','Thompson','Ritchie','Wirth','Stroustrup','Matsumoto','Hejlsberg','van Rossum','Wall','Gosling','Lerdorf','Carmack','Hickey','Armstrong','Gilbert','Pichai','Nadella','Sandberg','Gandhi','Tagore','Truth','Wells','Angelou','Morrison'];
+const FAKER_DOMAINS = ['example.com','example.org','test.dev','mail.io','corp.net'];
+const FAKER_CITIES = ['Mumbai','Berlin','Tokyo','Cairo','Lima','Oslo','Dakar','Hanoi','Reykjavik','Quito','Helsinki','Wellington','Toronto','Lagos','Athens'];
+const FAKER_WORDS = ['lorem','ipsum','dolor','sit','amet','consectetur','adipiscing','elit','sed','do','eiusmod','tempor','incididunt','ut','labore','et','dolore','magna','aliqua','enim','ad','minim','veniam','quis','nostrud','exercitation','ullamco','laboris'];
+function fakerRand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function fakerEval(token, ctx) {
+  const m = token.match(/^(\w+)(?:\s+(.+))?$/);
+  if (!m) return token;
+  const name = m[1].toLowerCase();
+  const args = (m[2] || '').trim();
+  const argList = args ? args.split(/\s+/) : [];
+  switch (name) {
+    case 'name': return fakerRand(FAKER_NAMES) + ' ' + fakerRand(FAKER_SUR);
+    case 'first': return fakerRand(FAKER_NAMES);
+    case 'last': return fakerRand(FAKER_SUR);
+    case 'email': return (fakerRand(FAKER_NAMES) + '.' + fakerRand(FAKER_SUR)).toLowerCase().replace(/\s+/g,'') + '@' + fakerRand(FAKER_DOMAINS);
+    case 'domain': return fakerRand(FAKER_DOMAINS);
+    case 'url': return 'https://' + fakerRand(FAKER_DOMAINS) + '/' + fakerRand(FAKER_WORDS);
+    case 'city': return fakerRand(FAKER_CITIES);
+    case 'int': {
+      const lo = +argList[0] || 0, hi = +argList[1] || 100;
+      return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+    }
+    case 'float': {
+      const lo = +argList[0] || 0, hi = +argList[1] || 1;
+      return +(Math.random() * (hi - lo) + lo).toFixed(4);
+    }
+    case 'bool': return Math.random() < 0.5;
+    case 'uuid': {
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+      const h = [...b].map(x => x.toString(16).padStart(2,'0')).join('');
+      return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+    }
+    case 'date': {
+      const d = new Date(Date.now() - Math.floor(Math.random()*365*86400*1000));
+      return d.toISOString().slice(0,10);
+    }
+    case 'datetime': return new Date(Date.now() - Math.floor(Math.random()*86400*1000)).toISOString();
+    case 'word': return fakerRand(FAKER_WORDS);
+    case 'words': { const n = +argList[0] || 3; return Array.from({length:n}, () => fakerRand(FAKER_WORDS)).join(' '); }
+    case 'sentence': { const n = +argList[0] || 8; const s = Array.from({length:n}, () => fakerRand(FAKER_WORDS)).join(' '); return s[0].toUpperCase() + s.slice(1) + '.'; }
+    case 'pick': return fakerRand(argList);
+    case 'i': return ctx.i;
+    case 'i1': return ctx.i + 1;
+    default: return '{{' + token + '}}';
+  }
+}
+function fakerRender(template, ctx) {
+  return template.replace(/\{\{([^}]+)\}\}/g, (_, t) => fakerEval(t.trim(), ctx));
+}
+
+MODULES.push({
+  id: 'faker',
+  name: 'Mock JSON',
+  icon: 'fk',
+  category: 'Converters & Generators',
+  desc: 'Template → N rows. Tokens: {{name}} {{email}} {{int 1 100}} {{uuid}} {{date}} {{pick a b c}} {{i}}.',
+  keywords: ['faker','mock','fake','data','generate','rows','sample','test','fixtures'],
+  init(c) {
+    c.innerHTML = '';
+    const tpl = el('textarea', { spellcheck: 'false', style: 'min-height:180px' });
+    tpl.value = store.get('faker:tpl', '{\n  "id": {{i1}},\n  "name": "{{name}}",\n  "email": "{{email}}",\n  "age": {{int 18 80}},\n  "active": {{bool}},\n  "joined": "{{date}}",\n  "city": "{{city}}",\n  "tier": "{{pick free pro enterprise}}"\n}');
+    const count = el('input', { type: 'number', value: store.get('faker:n', '10'), min: '1', max: '10000', style: 'max-width:120px' });
+    const wrap = el('select');
+    [['array','JSON array'],['ndjson','NDJSON (one per line)'],['csv','CSV']].forEach(([v,l]) => wrap.appendChild(el('option', { value: v }, l)));
+    wrap.value = store.get('faker:wrap', 'array');
+    const out = el('pre', { class: 'pre-out' });
+    const status = el('div', { class: 'status' });
+    function run() {
+      store.set('faker:tpl', tpl.value);
+      store.set('faker:n', count.value);
+      store.set('faker:wrap', wrap.value);
+      const n = Math.min(10000, Math.max(1, +count.value || 1));
+      try {
+        const rows = [];
+        for (let i = 0; i < n; i++) rows.push(JSON.parse(fakerRender(tpl.value, { i })));
+        if (wrap.value === 'array') out.textContent = JSON.stringify(rows, null, 2);
+        else if (wrap.value === 'ndjson') out.textContent = rows.map(r => JSON.stringify(r)).join('\n');
+        else if (wrap.value === 'csv') {
+          const cols = Object.keys(rows[0] || {});
+          const esc = v => { const s = v == null ? '' : String(v); return /[,"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+          out.textContent = cols.join(',') + '\n' + rows.map(r => cols.map(c => esc(r[c])).join(',')).join('\n');
+        }
+        status.textContent = '✓ ' + n + ' rows · ' + out.textContent.length + ' bytes'; status.className = 'status ok';
+      } catch (e) {
+        out.textContent = ''; status.textContent = '✗ ' + e.message; status.className = 'status err';
+      }
+    }
+    tpl.addEventListener('input', run);
+    count.addEventListener('input', run);
+    wrap.onchange = run;
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Rows'), count,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Format'), wrap,
+        el('button', { class: 'btn', onclick: run }, 'Regenerate'),
+        el('button', { class: 'btn', onclick: () => copy(out.textContent) }, 'Copy'),
+        el('span', { class: 'spacer' }), status
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Template (single JSON object)'),
+      tpl,
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Output'), out
+    ));
+    run();
+  }
+});
+
+/* ---------- ULID / KSUID / Snowflake parser ---------- */
+function ulidDecode(s) {
+  s = s.trim().toUpperCase();
+  if (!/^[0-9A-HJKMNP-TV-Z]{26}$/.test(s)) throw new Error('not a valid ULID (Crockford base32, 26 chars)');
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  let ts = 0;
+  for (let i = 0; i < 10; i++) ts = ts * 32 + alphabet.indexOf(s[i]);
+  return { type: 'ULID', timestamp: ts, date: new Date(ts).toISOString(), random: s.slice(10) };
+}
+function ksuidDecode(s) {
+  s = s.trim();
+  if (!/^[0-9A-Za-z]{27}$/.test(s)) throw new Error('not a valid KSUID (base62, 27 chars)');
+  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  // Decode base62 → 20 bytes (4 byte ts + 16 byte payload)
+  let big = 0n;
+  for (const ch of s) {
+    const v = alphabet.indexOf(ch);
+    if (v < 0) throw new Error('invalid char ' + ch);
+    big = big * 62n + BigInt(v);
+  }
+  const bytes = [];
+  for (let i = 0; i < 20; i++) { bytes.unshift(Number(big & 0xffn)); big >>= 8n; }
+  const ts = (bytes[0]<<24) | (bytes[1]<<16) | (bytes[2]<<8) | bytes[3];
+  const EPOCH = 1400000000;
+  const payload = bytes.slice(4).map(b => b.toString(16).padStart(2,'0')).join('');
+  return { type: 'KSUID', timestamp_unix: ts + EPOCH, date: new Date((ts + EPOCH)*1000).toISOString(), payload };
+}
+function snowflakeDecode(s, epoch) {
+  const n = BigInt(s.trim());
+  const ts = Number((n >> 22n)) + (epoch || 1288834974657); // default Twitter epoch
+  const dc = Number((n >> 17n) & 0x1fn);
+  const worker = Number((n >> 12n) & 0x1fn);
+  const seq = Number(n & 0xfffn);
+  return { type: 'Snowflake', epoch_used: epoch || 1288834974657, timestamp_ms: ts, date: new Date(ts).toISOString(), datacenter_id: dc, worker_id: worker, sequence: seq };
+}
+function ulidEncode(time) {
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  let t = time, ts = '';
+  for (let i = 0; i < 10; i++) { ts = alphabet[t % 32] + ts; t = Math.floor(t / 32); }
+  const r = crypto.getRandomValues(new Uint8Array(16));
+  let rand = '';
+  // 16 bytes → 128 bits → 26 chars base32, but we only need 16 chars (80 bits)
+  let acc = 0n;
+  for (const b of r) acc = (acc << 8n) | BigInt(b);
+  acc &= (1n << 80n) - 1n;
+  for (let i = 0; i < 16; i++) { rand = alphabet[Number(acc & 31n)] + rand; acc >>= 5n; }
+  return ts + rand;
+}
+
+MODULES.push({
+  id: 'ids',
+  name: 'ULID / KSUID',
+  icon: 'id',
+  category: 'Converters & Generators',
+  desc: 'Generate or parse ULID, KSUID, and Twitter Snowflake IDs.',
+  keywords: ['ulid','ksuid','snowflake','twitter','discord','id','identifier','sortable','time'],
+  init(c) {
+    c.innerHTML = '';
+    const input = el('input', { type: 'text', placeholder: 'Paste a ULID, KSUID, or Snowflake ID…' });
+    input.value = store.get('ids:input', '');
+    const epoch = el('input', { type: 'number', placeholder: 'Snowflake epoch (ms, default Twitter)', value: store.get('ids:epoch', '1288834974657'), style: 'max-width:240px' });
+    const out = el('div', { class: 'kv' });
+    const genULID = el('button', { class: 'btn' }, 'Generate ULID');
+    const status = el('div', { class: 'status' });
+    function detect(s) {
+      s = s.trim();
+      if (/^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/.test(s)) return 'ulid';
+      if (/^[0-9A-Za-z]{27}$/.test(s)) return 'ksuid';
+      if (/^\d{12,20}$/.test(s)) return 'snowflake';
+      return null;
+    }
+    function run() {
+      out.innerHTML = '';
+      const s = input.value.trim();
+      store.set('ids:input', s);
+      store.set('ids:epoch', epoch.value);
+      if (!s) { status.textContent = ''; return; }
+      try {
+        let r;
+        const kind = detect(s);
+        if (kind === 'ulid') r = ulidDecode(s);
+        else if (kind === 'ksuid') r = ksuidDecode(s);
+        else if (kind === 'snowflake') r = snowflakeDecode(s, +epoch.value || 0);
+        else throw new Error('unrecognised ID format');
+        Object.entries(r).forEach(([k, v]) => {
+          out.appendChild(el('div', { class: 'k' }, k));
+          out.appendChild(el('div', { class: 'v ok' }, String(v)));
+        });
+        status.textContent = '✓ ' + r.type; status.className = 'status ok';
+      } catch (e) { status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+    }
+    genULID.onclick = () => { input.value = ulidEncode(Date.now()); run(); };
+    input.addEventListener('input', run);
+    epoch.addEventListener('input', run);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' }, genULID, el('span', { class: 'spacer' }), status),
+      el('div', { class: 'label' }, 'ID'), input,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Snowflake epoch (ms)'), epoch,
+      out
+    ));
+    run();
+  }
+});
+
+/* ---------- License Picker ---------- */
+const LICENSES = [
+  {
+    id: 'MIT',
+    name: 'MIT License',
+    tldr: 'Short and simple permissive license. Do whatever, just include the notice. No warranty.',
+    body: 'MIT License\n\nCopyright (c) [year] [fullname]\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the "Software"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n'
+  },
+  {
+    id: 'Apache-2.0',
+    name: 'Apache License 2.0',
+    tldr: 'Permissive, with an explicit patent grant and contribution clause. Slightly longer than MIT.',
+    body: 'Apache License, Version 2.0\n\nCopyright [year] [fullname]\n\nLicensed under the Apache License, Version 2.0 (the "License");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an "AS IS" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n\n(For the full text, see https://www.apache.org/licenses/LICENSE-2.0.txt)\n'
+  },
+  {
+    id: 'BSD-3-Clause',
+    name: 'BSD 3-Clause License',
+    tldr: 'Permissive. Like MIT but adds a "no endorsement" clause for the copyright holder\'s name.',
+    body: 'BSD 3-Clause License\n\nCopyright (c) [year], [fullname]\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n1. Redistributions of source code must retain the above copyright notice,\n   this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright notice,\n   this list of conditions and the following disclaimer in the documentation\n   and/or other materials provided with the distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived from\n   this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"\nAND ANY EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED. (full disclaimer follows)\n'
+  },
+  {
+    id: 'GPL-3.0',
+    name: 'GNU General Public License v3.0',
+    tldr: 'Strong copyleft. Derivatives must be GPL too. Includes patent grant.',
+    body: 'GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n\nCopyright (c) [year] [fullname]\n\nThis program is free software: you can redistribute it and/or modify\nit under the terms of the GNU General Public License as published by\nthe Free Software Foundation, either version 3 of the License, or\n(at your option) any later version.\n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\nGNU General Public License for more details.\n\n(For the full text, see https://www.gnu.org/licenses/gpl-3.0.txt)\n'
+  },
+  {
+    id: 'AGPL-3.0',
+    name: 'GNU Affero General Public License v3.0',
+    tldr: 'GPL plus a network clause: running the software as a service triggers source disclosure.',
+    body: 'GNU AFFERO GENERAL PUBLIC LICENSE\nVersion 3, 19 November 2007\n\nCopyright (c) [year] [fullname]\n\n(For the full text, see https://www.gnu.org/licenses/agpl-3.0.txt)\n'
+  },
+  {
+    id: 'MPL-2.0',
+    name: 'Mozilla Public License 2.0',
+    tldr: 'File-level copyleft: changed MPL files must be shared, but you can mix with proprietary code.',
+    body: 'Mozilla Public License Version 2.0\n\nCopyright (c) [year] [fullname]\n\n(For the full text, see https://www.mozilla.org/MPL/2.0/)\n'
+  },
+  {
+    id: 'Unlicense',
+    name: 'The Unlicense',
+    tldr: 'Public domain dedication. Do anything, no attribution required. Not legally bulletproof everywhere.',
+    body: 'This is free and unencumbered software released into the public domain.\n\nAnyone is free to copy, modify, publish, use, compile, sell, or\ndistribute this software, either in source code form or as a compiled\nbinary, for any purpose, commercial or non-commercial, and by any means.\n\nIn jurisdictions that recognize copyright laws, the author or authors\nof this software dedicate any and all copyright interest in the software\nto the public domain. (see https://unlicense.org/)\n'
+  },
+  {
+    id: 'CC0-1.0',
+    name: 'Creative Commons Zero v1.0',
+    tldr: 'Public-domain dedication used for content (docs, art). For code, prefer MIT/Unlicense.',
+    body: 'CC0 1.0 Universal (CC0 1.0) Public Domain Dedication\n\n(see https://creativecommons.org/publicdomain/zero/1.0/legalcode)\n'
+  },
+];
+
+MODULES.push({
+  id: 'license',
+  name: 'License Picker',
+  icon: 'lc',
+  category: 'Reference',
+  desc: 'Common OSS licenses with TL;DR and full text. Fills in your name and year.',
+  keywords: ['license','licence','mit','apache','bsd','gpl','agpl','mpl','unlicense','cc0','spdx','open source'],
+  init(c) {
+    c.innerHTML = '';
+    const sel = el('select');
+    LICENSES.forEach(L => sel.appendChild(el('option', { value: L.id }, L.id + ' — ' + L.name)));
+    sel.value = store.get('license:id', 'MIT');
+    const fullname = el('input', { type: 'text', placeholder: 'Your name', value: store.get('license:name', '') });
+    const year = el('input', { type: 'text', placeholder: 'Year', value: store.get('license:year', String(new Date().getFullYear())), style: 'max-width:120px' });
+    const tldr = el('div', { class: 'kv' });
+    const body = el('pre', { class: 'pre-out' });
+    function render() {
+      tldr.innerHTML = ''; body.innerHTML = '';
+      const L = LICENSES.find(x => x.id === sel.value);
+      tldr.appendChild(el('div', { class: 'k' }, 'TL;DR'));
+      tldr.appendChild(el('div', { class: 'v' }, L.tldr));
+      body.textContent = L.body.replace(/\[fullname\]/g, fullname.value || '[fullname]').replace(/\[year\]/g, year.value || '[year]');
+      store.set('license:id', sel.value);
+      store.set('license:name', fullname.value);
+      store.set('license:year', year.value);
+    }
+    sel.onchange = render; fullname.addEventListener('input', render); year.addEventListener('input', render);
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'License'), sel,
+        el('div', { class: 'label', style: 'margin-left:14px' }, 'Name'), fullname,
+        el('div', { class: 'label' }, 'Year'), year,
+        el('button', { class: 'btn', onclick: () => copy(body.textContent) }, 'Copy text')
+      ),
+      tldr,
+      body
+    ));
+    render();
+  }
+});
+
+/* ---------- Templates: .gitignore / EditorConfig / robots.txt ---------- */
+const TEMPLATES = {
+  '.gitignore (Node)': '# Dependencies\nnode_modules/\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\n\n# Build output\ndist/\nbuild/\n.next/\nout/\n.cache/\n\n# Env\n.env\n.env.local\n.env.*.local\n\n# Editor / OS\n.DS_Store\nThumbs.db\n.vscode/\n.idea/\n*.swp\n*.swo\n\n# Logs / coverage\nlogs/\n*.log\ncoverage/\n.nyc_output/\n',
+  '.gitignore (Python)': '__pycache__/\n*.py[cod]\n*$py.class\n*.so\n\n# Distribution / packaging\ndist/\nbuild/\n*.egg-info/\n*.egg\n.eggs/\nwheels/\n\n# Virtual envs\n.venv/\nvenv/\nenv/\nENV/\n\n# Testing / coverage\n.pytest_cache/\n.tox/\n.coverage\ncoverage.xml\nhtmlcov/\n\n# Jupyter\n.ipynb_checkpoints/\n\n# Env\n.env\n.env.*\n\n# IDE / OS\n.vscode/\n.idea/\n.DS_Store\n',
+  '.gitignore (Rust)': 'target/\nCargo.lock # delete for libraries; keep for binaries\n**/*.rs.bk\n*.pdb\n\n# IDE / OS\n.vscode/\n.idea/\n.DS_Store\n',
+  '.gitignore (Go)': '# Binaries\n*.exe\n*.test\n*.out\n\n# Coverage / profiling\n*.prof\ncoverage.txt\n\n# Vendor directory (uncomment if not using modules)\n# vendor/\n\n# Env\n.env\n\n# IDE / OS\n.vscode/\n.idea/\n.DS_Store\n',
+  '.editorconfig (sensible defaults)': '# https://editorconfig.org\nroot = true\n\n[*]\nindent_style = space\nindent_size = 2\nend_of_line = lf\ncharset = utf-8\ntrim_trailing_whitespace = true\ninsert_final_newline = true\n\n[*.py]\nindent_size = 4\n\n[*.go]\nindent_style = tab\n\n[Makefile]\nindent_style = tab\n\n[*.md]\ntrim_trailing_whitespace = false\n',
+  'robots.txt (allow all)': 'User-agent: *\nAllow: /\n\nSitemap: https://example.com/sitemap.xml\n',
+  'robots.txt (block all)': '# Block all bots from the entire site.\nUser-agent: *\nDisallow: /\n',
+  'robots.txt (typical)': '# Default: allow everything. Disallow specific paths.\nUser-agent: *\nDisallow: /admin/\nDisallow: /private/\nDisallow: /*.json$\nAllow: /\n\n# Block aggressive scrapers / AI crawlers (opt-in policy — adjust to taste)\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: CCBot\nDisallow: /\n\nUser-agent: anthropic-ai\nDisallow: /\n\nSitemap: https://example.com/sitemap.xml\n',
+  'humans.txt': '/* TEAM */\nDeveloper: [your name]\nContact: hello [at] example.com\nFrom: [city, country]\n\n/* SITE */\nLast update: ' + new Date().toISOString().slice(0,10) + '\nLanguage: English\nDoctype: HTML5\n',
+  'Dockerfile (Node, slim)': 'FROM node:20-slim\n\nWORKDIR /app\n\nCOPY package*.json ./\nRUN npm ci --omit=dev\n\nCOPY . .\n\nEXPOSE 3000\nUSER node\nCMD ["node", "server.js"]\n',
+  'Dockerfile (Python, slim)': 'FROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY . .\n\nEXPOSE 8000\nCMD ["python", "main.py"]\n',
+  'Makefile (skeleton)': '.PHONY: help install test lint fmt clean\n\nhelp:\n\t@grep -E "^[a-zA-Z_-]+:.*?## " $(MAKEFILE_LIST) | awk \'BEGIN {FS = ":.*?## "}; {printf "\\033[36m%-15s\\033[0m %s\\n", $$1, $$2}\'\n\ninstall:  ## Install dependencies\n\nlint:     ## Run linter\n\ntest:     ## Run tests\n\nfmt:      ## Format code\n\nclean:    ## Remove build artefacts\n\trm -rf dist build\n',
+};
+
+MODULES.push({
+  id: 'templates',
+  name: 'Templates',
+  icon: 'tp',
+  category: 'Reference',
+  desc: '.gitignore, .editorconfig, robots.txt, Dockerfile, Makefile starters.',
+  keywords: ['template','gitignore','editorconfig','robots','dockerfile','makefile','humans','starter','boilerplate'],
+  init(c) {
+    c.innerHTML = '';
+    const sel = el('select');
+    Object.keys(TEMPLATES).forEach(k => sel.appendChild(el('option', { value: k }, k)));
+    sel.value = store.get('templates:id', '.gitignore (Node)');
+    const body = el('pre', { class: 'pre-out' });
+    function render() {
+      body.textContent = TEMPLATES[sel.value] || '';
+      store.set('templates:id', sel.value);
+    }
+    sel.onchange = render;
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'btn-row' },
+        el('div', { class: 'label' }, 'Template'), sel,
+        el('button', { class: 'btn', onclick: () => copy(body.textContent) }, 'Copy'),
+        el('button', { class: 'btn', onclick: () => {
+          const a = document.createElement('a');
+          const blob = new Blob([body.textContent], { type: 'text/plain' });
+          a.href = URL.createObjectURL(blob);
+          a.download = sel.value.replace(/\s*\([^)]+\)/, '').trim() || 'template.txt';
+          a.click(); URL.revokeObjectURL(a.href);
+        } }, 'Download')
+      ),
+      body
+    ));
+    render();
+  }
+});
+
+/* ---------- CSP / Security Header Builder ---------- */
+const CSP_DIRECTIVES = [
+  ['default-src', ["'self'", "'none'", '*'], 'Fallback for all fetch directives.'],
+  ['script-src', ["'self'", "'unsafe-inline'", "'unsafe-eval'", "'strict-dynamic'", "'nonce-RANDOM'"], 'JavaScript sources.'],
+  ['style-src', ["'self'", "'unsafe-inline'"], 'CSS sources.'],
+  ['img-src', ["'self'", 'data:', 'blob:', 'https:'], 'Image sources.'],
+  ['font-src', ["'self'", 'data:'], 'Font sources.'],
+  ['connect-src', ["'self'"], 'XHR / fetch / WebSocket targets.'],
+  ['frame-src', ["'self'", "'none'"], 'iframe sources.'],
+  ['frame-ancestors', ["'self'", "'none'"], 'Who may embed this page (replaces X-Frame-Options).'],
+  ['object-src', ["'none'"], '<object>/<embed>. Almost always "none".'],
+  ['base-uri', ["'self'", "'none'"], 'What <base> can set.'],
+  ['form-action', ["'self'"], 'Where <form> can submit.'],
+  ['upgrade-insecure-requests', null, 'Upgrade http → https on this page (no value).'],
+  ['report-uri', null, 'CSP violation report endpoint (legacy).'],
+];
+
+MODULES.push({
+  id: 'csp',
+  name: 'CSP Builder',
+  icon: 'cp',
+  category: 'Reference',
+  desc: 'Compose a Content-Security-Policy header and other security headers.',
+  keywords: ['csp','content security policy','header','security','hsts','x-frame','permissions-policy','referrer'],
+  init(c) {
+    c.innerHTML = '';
+    const wrap = el('div', { class: 'col' });
+    const dirRows = {};
+    CSP_DIRECTIVES.forEach(([name, values, desc]) => {
+      const row = el('div', { style: 'display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border)' });
+      const label = el('div', { style: 'min-width:180px' },
+        el('div', { class: 'code', style: 'font-family:var(--mono);font-size:12.5px;color:var(--accent)' }, name),
+        el('div', { style: 'font-size:11px;color:var(--text-faint)' }, desc)
+      );
+      const input = el('input', { type: 'text', placeholder: values ? values.join(' ') : '(boolean — no value)', style: 'flex:1' });
+      input.value = store.get('csp:' + name, '');
+      input.addEventListener('input', () => { store.set('csp:' + name, input.value); update(); });
+      row.appendChild(label); row.appendChild(input);
+      dirRows[name] = input;
+      wrap.appendChild(row);
+    });
+    const cspOut = el('pre', { class: 'pre-out' });
+    const headers = el('pre', { class: 'pre-out' });
+    // HSTS, X-Frame, Referrer-Policy, Permissions-Policy quick switches
+    const hsts = el('input', { type: 'checkbox' }); hsts.checked = store.get('csp:hsts', '1') === '1';
+    const xcto = el('input', { type: 'checkbox' }); xcto.checked = store.get('csp:xcto', '1') === '1';
+    const refpol = el('select');
+    ['no-referrer','no-referrer-when-downgrade','origin','origin-when-cross-origin','strict-origin','strict-origin-when-cross-origin','same-origin','unsafe-url'].forEach(v => refpol.appendChild(el('option', { value: v }, v)));
+    refpol.value = store.get('csp:refpol', 'strict-origin-when-cross-origin');
+    const permpol = el('input', { type: 'text', placeholder: 'e.g. camera=(), microphone=(), geolocation=(self)' });
+    permpol.value = store.get('csp:permpol', 'camera=(), microphone=(), geolocation=()');
+
+    function update() {
+      const parts = [];
+      CSP_DIRECTIVES.forEach(([name, values]) => {
+        const v = (dirRows[name].value || '').trim();
+        if (values === null) {
+          if (v === 'true' || v === '1' || v === 'on') parts.push(name);
+        } else if (v) {
+          parts.push(name + ' ' + v);
+        }
+      });
+      cspOut.textContent = 'Content-Security-Policy: ' + parts.join('; ');
+      const hh = [];
+      hh.push(cspOut.textContent);
+      if (hsts.checked) hh.push('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+      if (xcto.checked) hh.push('X-Content-Type-Options: nosniff');
+      hh.push('Referrer-Policy: ' + refpol.value);
+      if (permpol.value.trim()) hh.push('Permissions-Policy: ' + permpol.value.trim());
+      headers.textContent = hh.join('\n');
+      store.set('csp:hsts', hsts.checked ? '1' : '0');
+      store.set('csp:xcto', xcto.checked ? '1' : '0');
+      store.set('csp:refpol', refpol.value);
+      store.set('csp:permpol', permpol.value);
+    }
+    hsts.addEventListener('change', update); xcto.addEventListener('change', update);
+    refpol.onchange = update; permpol.addEventListener('input', update);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'CSP directives'),
+      wrap,
+      el('div', { class: 'label', style: 'margin-top:10px' }, 'Additional security headers'),
+      el('div', { class: 'btn-row' },
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px' }, hsts, 'HSTS (1y, subdomains, preload)'),
+        el('label', { style: 'display:flex;gap:5px;align-items:center;font-size:12px' }, xcto, 'X-Content-Type-Options: nosniff'),
+        el('div', { class: 'label', style: 'margin-left:10px' }, 'Referrer-Policy'), refpol
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'Permissions-Policy'),
+      permpol,
+      el('div', { class: 'btn-row', style: 'margin-top:10px' },
+        el('button', { class: 'btn', onclick: () => copy(cspOut.textContent) }, 'Copy CSP line'),
+        el('button', { class: 'btn', onclick: () => copy(headers.textContent) }, 'Copy all headers')
+      ),
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'CSP'), cspOut,
+      el('div', { class: 'label', style: 'margin-top:8px' }, 'All headers'), headers
+    ));
+    update();
+  }
+});
+
+/* ============================================================
    APP SHELL
    ============================================================ */
 

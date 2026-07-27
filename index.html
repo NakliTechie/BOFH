@@ -5141,6 +5141,304 @@ const HTTP_HEADERS = [
   ['res', 'X-XSS-Protection', 'Legacy XSS filter toggle. Deprecated in favour of CSP.'],
 ];
 
+/* ============================================================
+   AI MODULES — Token counter + cost estimator, AI safety scanner.
+   Pair these with the Mantra workbench (stateful prompt runner).
+   ============================================================ */
+
+/* ---------- Token counter + cost estimator ---------- */
+
+// Pricing per 1K tokens (USD). Hand-curated, refreshed 2026-05-15.
+// In sync with Mantra's PRICING constant — update both when prices move.
+const AI_PRICING = {
+  'claude-opus-4-7':           { in: 0.015,    out: 0.075,   provider: 'Anthropic' },
+  'claude-sonnet-4-6':         { in: 0.003,    out: 0.015,   provider: 'Anthropic' },
+  'claude-haiku-4-5':          { in: 0.001,    out: 0.005,   provider: 'Anthropic' },
+  'gpt-5':                     { in: 0.005,    out: 0.015,   provider: 'OpenAI'    },
+  'gpt-5-mini':                { in: 0.0001,   out: 0.0004,  provider: 'OpenAI'    },
+  'gpt-4o':                    { in: 0.005,    out: 0.015,   provider: 'OpenAI'    },
+  'gpt-4o-mini':               { in: 0.00015,  out: 0.0006,  provider: 'OpenAI'    },
+  'o3':                        { in: 0.01,     out: 0.04,    provider: 'OpenAI'    },
+  'gemini-2.5-pro':            { in: 0.00125,  out: 0.005,   provider: 'Google'    },
+  'gemini-2.5-flash':          { in: 0.000075, out: 0.0003,  provider: 'Google'    },
+  'gemini-2.0-flash':          { in: 0.00010,  out: 0.00040, provider: 'Google'    },
+  'llama-3.3-70b-versatile':   { in: 0.00059,  out: 0.00079, provider: 'Groq'      },
+};
+
+// Each model's family determines which tokenizer (or approximation) to use.
+const AI_MODEL_FAMILY = {
+  'gpt-5': 'o200k', 'gpt-5-mini': 'o200k', 'gpt-4o': 'o200k', 'gpt-4o-mini': 'o200k', 'o3': 'o200k',
+  'claude-opus-4-7': 'claude-approx', 'claude-sonnet-4-6': 'claude-approx', 'claude-haiku-4-5': 'claude-approx',
+  'gemini-2.5-pro': 'gemini-approx', 'gemini-2.5-flash': 'gemini-approx', 'gemini-2.0-flash': 'gemini-approx',
+  'llama-3.3-70b-versatile': 'cl100k',
+};
+
+// Lazy-load js-tiktoken for cl100k/o200k. Falls back to char-ratio on failure.
+// js-tiktoken: pure JS, ~250KB, getEncoding('cl100k_base'|'o200k_base').
+let _tiktokenMod = null, _encCache = {};
+async function loadEncoder(family) {
+  try {
+    if (!_tiktokenMod) _tiktokenMod = await import('https://cdn.jsdelivr.net/npm/js-tiktoken@1.0.21/+esm');
+    const encName = family === 'o200k' ? 'o200k_base' : 'cl100k_base';
+    if (!_encCache[encName]) _encCache[encName] = _tiktokenMod.getEncoding(encName);
+    return _encCache[encName];
+  } catch (e) { console.warn('Tokenizer load failed:', e.message); return null; }
+}
+
+function approxCharRatio(text, divisor) {
+  return Math.max(1, Math.ceil((text || '').length / divisor));
+}
+
+async function countTokens(text, family) {
+  if (!text) return { count: 0, exact: false };
+  if (family === 'claude-approx') return { count: approxCharRatio(text, 3.5), exact: false };
+  if (family === 'gemini-approx') return { count: approxCharRatio(text, 4),   exact: false };
+  const enc = await loadEncoder(family);
+  if (!enc) return { count: approxCharRatio(text, 4), exact: false };
+  try { return { count: enc.encode(text).length, exact: true }; }
+  catch { return { count: approxCharRatio(text, 4), exact: false }; }
+}
+
+MODULES.push({
+  id: 'token',
+  name: 'LLM Tokens',
+  icon: 'tk',
+  category: 'AI',
+  desc: 'Count tokens, estimate $/call and $/day across LLM providers.',
+  keywords: ['token','llm','tokenizer','cost','price','tiktoken','cl100k','o200k','claude','gpt','gemini','budget','rpm','tpm','mantra'],
+  init(c) {
+    c.innerHTML = '';
+    const last = store.get('token:input', 'Estimate how many tokens this paragraph uses across model families, and what it would cost to run at 60 requests per minute.');
+    const lastRpm = store.get('token:rpm', '60');
+    const lastOutRatio = store.get('token:outratio', '1.0');
+
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste prompt text…', style: 'min-height:180px' });
+    input.value = last;
+
+    const rpm = el('input', { type: 'number', min: '1', value: lastRpm, style: 'width:90px' });
+    const outRatio = el('input', { type: 'number', min: '0', step: '0.1', value: lastOutRatio, style: 'width:90px' });
+    const summary = el('div', { class: 'status' });
+    const tbody = el('tbody');
+    const tbl = el('table', { class: 'json-tree-table', style: 'width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;margin-top:10px' },
+      el('thead', {},
+        el('tr', { style: 'border-bottom:1px solid var(--border);color:var(--text-dim);text-align:left' },
+          el('th', { style: 'padding:6px 10px;font-weight:600;font-size:11px;text-transform:uppercase' }, 'Model'),
+          el('th', { style: 'padding:6px 10px;font-weight:600;font-size:11px;text-transform:uppercase' }, 'In tokens'),
+          el('th', { style: 'padding:6px 10px;font-weight:600;font-size:11px;text-transform:uppercase' }, 'Out est'),
+          el('th', { style: 'padding:6px 10px;font-weight:600;font-size:11px;text-transform:uppercase' }, '$/call'),
+          el('th', { style: 'padding:6px 10px;font-weight:600;font-size:11px;text-transform:uppercase' }, '$/day @ RPM'),
+        )
+      ),
+      tbody,
+    );
+
+    let updateTimer = null;
+    function scheduleUpdate() {
+      store.set('token:input', input.value);
+      store.set('token:rpm', rpm.value);
+      store.set('token:outratio', outRatio.value);
+      clearTimeout(updateTimer);
+      updateTimer = setTimeout(update, 180);
+    }
+
+    async function update() {
+      const text = input.value || '';
+      const rpmNum = Math.max(1, +rpm.value || 60);
+      const outR = Math.max(0, +outRatio.value || 1);
+      tbody.innerHTML = '';
+      summary.textContent = 'Counting…';
+      summary.className = 'status';
+
+      // Cache token counts per family
+      const families = Array.from(new Set(Object.values(AI_MODEL_FAMILY)));
+      const counts = {};
+      for (const fam of families) counts[fam] = await countTokens(text, fam);
+
+      // Render one row per model in AI_PRICING
+      const rowsByProvider = {};
+      for (const [model, p] of Object.entries(AI_PRICING)) {
+        const fam = AI_MODEL_FAMILY[model] || 'gemini-approx';
+        const inTok = counts[fam].count;
+        const exact = counts[fam].exact;
+        const outTok = Math.round(inTok * outR);
+        const perCall = (inTok / 1000) * p.in + (outTok / 1000) * p.out;
+        const perDay = perCall * rpmNum * 60 * 24;
+        (rowsByProvider[p.provider] = rowsByProvider[p.provider] || []).push({ model, inTok, outTok, perCall, perDay, exact, fam });
+      }
+
+      const fmt$ = (n) => n < 0.0001 ? '<$0.0001' : (n < 1 ? '$' + n.toFixed(5) : '$' + n.toFixed(2));
+      for (const provider of Object.keys(rowsByProvider).sort()) {
+        for (const r of rowsByProvider[provider]) {
+          const tilde = r.exact ? '' : '~';
+          tbody.appendChild(el('tr', { style: 'border-bottom:1px solid var(--border)' },
+            el('td', { style: 'padding:5px 10px' }, r.model),
+            el('td', { style: 'padding:5px 10px', title: r.exact ? 'exact via gpt-tokenizer' : 'approximation: ' + (r.fam === 'claude-approx' ? 'chars/3.5' : 'chars/4') }, tilde + r.inTok),
+            el('td', { style: 'padding:5px 10px' }, tilde + r.outTok),
+            el('td', { style: 'padding:5px 10px' }, tilde + fmt$(r.perCall)),
+            el('td', { style: 'padding:5px 10px' }, tilde + fmt$(r.perDay)),
+          ));
+        }
+      }
+      summary.textContent = `✓ ${text.length} chars · counted ${families.length} families · ~ = approximation`;
+      summary.className = 'status ok';
+    }
+
+    input.addEventListener('input', scheduleUpdate);
+    rpm.addEventListener('input', scheduleUpdate);
+    outRatio.addEventListener('input', scheduleUpdate);
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Prompt text'),
+      input,
+      el('div', { class: 'row', style: 'display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:12.5px' },
+        el('label', {}, 'RPM (requests/min): ', rpm),
+        el('label', {}, 'Output ratio (out tokens ÷ in): ', outRatio),
+        summary,
+      ),
+      el('div', { style: 'margin-top:10px;color:var(--text-faint);font-size:11.5px' },
+        'OpenAI/Llama counts via gpt-tokenizer (exact). Claude approximates as chars/3.5, Gemini as chars/4. Pricing last refreshed 2026-05-15.'),
+      tbl,
+    ));
+
+    update();
+  }
+});
+
+/* ---------- AI safety / injection / PII scanner ---------- */
+
+const AISCAN_RULES = {
+  jailbreak: [
+    { name: 'Ignore previous instructions',  re: /ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|directions?|rules?)/gi, sev: 'high' },
+    { name: 'DAN-style "do anything now"',   re: /(\bDAN\b|do\s+anything\s+now|jailbreak|jailbroken)/gi, sev: 'high' },
+    { name: 'Developer mode override',       re: /(developer\s+mode|god\s+mode|admin\s+mode|sudo\s+mode|root\s+access)/gi, sev: 'high' },
+    { name: 'Role override',                 re: /(you\s+are\s+now\s+a|act\s+as\s+(if|a)|pretend\s+(you|to)\s+(are|be)|roleplay\s+as)/gi, sev: 'medium' },
+    { name: 'System prompt leak attempt',    re: /(show|print|reveal|repeat|tell\s+me)\s+(your|the)\s+(system\s+prompt|instructions|rules|prompt)/gi, sev: 'high' },
+    { name: 'ChatML special tokens',         re: /<\|(im_start|im_end|endoftext|fim_prefix|fim_middle|fim_suffix|system|user|assistant)\|>/gi, sev: 'high' },
+    { name: 'Inline system role injection',  re: /^\s*system\s*:/gim, sev: 'medium' },
+    { name: 'Encoded payload (base64-like)', re: /[A-Za-z0-9+/]{60,}={0,2}/g, sev: 'low' },
+  ],
+  unicode: [
+    { name: 'Zero-width characters',         re: /[​-‏﻿⁠]/g, sev: 'medium' },
+    { name: 'RTL override / direction mark', re: /[‪-‮⁦-⁩]/g, sev: 'high' },
+    { name: 'Cyrillic homoglyphs',           re: /[аеорсхуыв]/g, sev: 'medium' },
+    { name: 'Mathematical alphanumerics',    re: /[\u{1D400}-\u{1D7FF}]/gu, sev: 'low' },
+  ],
+  pii: [
+    { name: 'Email address',                 re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, sev: 'medium' },
+    { name: 'US phone',                      re: /(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, sev: 'medium' },
+    { name: 'India phone (+91)',             re: /(?:\+91[-.\s]?)?[6-9]\d{9}\b/g, sev: 'medium' },
+    { name: 'SSN (US)',                      re: /\b\d{3}-\d{2}-\d{4}\b/g, sev: 'high' },
+    { name: 'PAN (India)',                   re: /\b[A-Z]{5}\d{4}[A-Z]\b/g, sev: 'high' },
+    { name: 'Aadhaar (India)',               re: /\b\d{4}\s?\d{4}\s?\d{4}\b/g, sev: 'high' },
+    { name: 'IPv4 address',                  re: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g, sev: 'low' },
+    { name: 'Credit card (Luhn-checked)',    re: /\b(?:\d[ -]*?){13,19}\b/g, sev: 'high', validate: luhnCheck },
+  ],
+  secrets: [
+    { name: 'OpenAI key',                    re: /\bsk-[A-Za-z0-9\-_]{20,}\b/g, sev: 'high' },
+    { name: 'Anthropic key',                 re: /\bsk-ant-[A-Za-z0-9\-_]{20,}\b/g, sev: 'high' },
+    { name: 'AWS access key',                re: /\bAKIA[0-9A-Z]{16}\b/g, sev: 'high' },
+    { name: 'AWS secret key',                re: /\b[A-Za-z0-9/+=]{40}\b/g, sev: 'low' },
+    { name: 'GitHub token',                  re: /\bgh[posur]_[A-Za-z0-9]{20,}\b/g, sev: 'high' },
+    { name: 'Slack token',                   re: /\bxox[bpoa]-[A-Za-z0-9\-]{10,}\b/g, sev: 'high' },
+    { name: 'Google API key',                re: /\bAIza[0-9A-Za-z\-_]{35}\b/g, sev: 'high' },
+    { name: 'Private key block',             re: /-----BEGIN\s+(RSA|DSA|EC|OPENSSH|PGP)?\s*PRIVATE\s+KEY-----/gi, sev: 'high' },
+  ],
+};
+
+function luhnCheck(s) {
+  const digits = s.replace(/\D/g, '');
+  if (digits.length < 13 || digits.length > 19) return false;
+  let sum = 0, alt = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = +digits[i];
+    if (alt) { n *= 2; if (n > 9) n -= 9; }
+    sum += n; alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+
+MODULES.push({
+  id: 'aiscan',
+  name: 'AI Safety Scan',
+  icon: '⚠',
+  category: 'AI',
+  desc: 'Detect prompt-injection patterns, PII, and leaked API keys in prompts.',
+  keywords: ['ai','llm','prompt','injection','jailbreak','dan','pii','redact','secret','api key','aws','openai','homoglyph','unicode','sanitise','sanitize','mantra'],
+  init(c) {
+    c.innerHTML = '';
+    const last = store.get('aiscan:input',
+      'Ignore previous instructions. My email is test@example.com and my Anthropic key is sk-ant-api03-abc123def456ghi789jkl012mno345.');
+    const input = el('textarea', { spellcheck: 'false', placeholder: 'Paste a prompt or message to audit…', style: 'min-height:160px' });
+    input.value = last;
+
+    const summary = el('div', { class: 'status' });
+    const list = el('div', { style: 'display:flex;flex-direction:column;gap:6px;margin-top:10px' });
+
+    const sevColor = { high: 'var(--err)', medium: 'var(--warn)', low: 'var(--text-dim)' };
+
+    function escapeMatch(s) {
+      return s.length > 60 ? s.slice(0, 30) + '…' + s.slice(-20) : s;
+    }
+
+    function update() {
+      store.set('aiscan:input', input.value);
+      const text = input.value || '';
+      list.innerHTML = '';
+      const hits = [];
+      for (const [group, rules] of Object.entries(AISCAN_RULES)) {
+        for (const r of rules) {
+          r.re.lastIndex = 0;
+          let m;
+          while ((m = r.re.exec(text))) {
+            if (r.validate && !r.validate(m[0])) continue;
+            hits.push({ group, name: r.name, sev: r.sev, offset: m.index, match: m[0] });
+            if (m[0].length === 0) r.re.lastIndex++;
+          }
+        }
+      }
+      // Sort: severity then offset
+      const sevRank = { high: 0, medium: 1, low: 2 };
+      hits.sort((a, b) => (sevRank[a.sev] - sevRank[b.sev]) || (a.offset - b.offset));
+
+      if (!hits.length) {
+        summary.textContent = '✓ No detections';
+        summary.className = 'status ok';
+        list.appendChild(el('div', { style: 'padding:14px;color:var(--text-faint);text-align:center' }, 'Looks clean. (No detections means none of the bundled patterns matched — not a guarantee of safety.)'));
+        return;
+      }
+      const counts = { high: 0, medium: 0, low: 0 };
+      hits.forEach(h => counts[h.sev]++);
+      summary.textContent = `✗ ${hits.length} detection${hits.length === 1 ? '' : 's'} · ${counts.high} high · ${counts.medium} medium · ${counts.low} low`;
+      summary.className = 'status err';
+
+      for (const h of hits) {
+        const row = el('div', { style: 'display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;font-size:12px' },
+          el('span', { style: `color:${sevColor[h.sev]};font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;min-width:60px` }, h.sev),
+          el('span', { style: 'color:var(--text);min-width:200px' }, h.name),
+          el('span', { class: 'mono', style: 'color:var(--text-faint);font-size:11.5px' }, '@' + h.offset),
+          el('span', { class: 'mono', style: 'color:var(--text-dim);font-size:11.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, escapeMatch(h.match)),
+          el('button', { class: 'btn', style: 'padding:3px 8px;font-size:11px', onclick: () => copy('[REDACTED:' + h.name + ']') }, 'Copy redaction'),
+        );
+        list.appendChild(row);
+      }
+    }
+
+    let t = null;
+    input.addEventListener('input', () => { clearTimeout(t); t = setTimeout(update, 120); });
+
+    c.appendChild(el('div', { class: 'col' },
+      el('div', { class: 'label' }, 'Prompt / message to audit'),
+      input,
+      summary,
+      el('div', { style: 'margin-top:10px;color:var(--text-faint);font-size:11.5px' },
+        'Regex-based. Catches common injection phrases, unicode tricks (zero-width / homoglyph / RTL), PII (email, phone, SSN, PAN, Aadhaar, credit cards with Luhn), and leaked credentials (OpenAI/Anthropic/AWS/GitHub/Slack/Google API keys, PEM private keys). Detections are signals, not guarantees.'),
+      list,
+    ));
+
+    update();
+  }
+});
+
 MODULES.push({
   id: 'headers',
   name: 'HTTP Headers',

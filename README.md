@@ -1,6 +1,6 @@
 # BOFH — Browser-Native Dev Toolkit
 
-**One HTML file. Forty-eight tools. Zero data leaving your device.**
+**One HTML file. Fifty tools. Zero data leaving your device.**
 
 Named after the [Bastard Operator From Hell](https://en.wikipedia.org/wiki/Bastard_Operator_from_Hell) — because your tokens, keys, and logs deserve better than some random website's S3 bucket.
 
@@ -20,7 +20,7 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 
 ---
 
-## What's in it — 48 modules across 4 categories
+## What's in it — 50 modules across 5 categories
 
 **Text & Data**
 
@@ -90,6 +90,15 @@ BOFH does it all locally. Single HTML file. Open it from anywhere — GitHub Pag
 | **License Picker** | 8 SPDX licenses (MIT, Apache-2.0, BSD-3-Clause, GPL-3.0, AGPL-3.0, MPL-2.0, Unlicense, CC0-1.0) with TL;DR and name/year fill-in. |
 | **Templates** | `.gitignore` (Node/Python/Rust/Go), `.editorconfig`, `robots.txt`, `humans.txt`, `Dockerfile`, `Makefile` starters. |
 
+**AI**
+
+Companion calculators for the [Mantra](https://github.com/NakliTechie/Mantra) workbench — stateless utilities you reach for in 10 seconds.
+
+| Module | What it does |
+|---|---|
+| **LLM Tokens** | Token count + $/call + $/day at a given RPM across Claude, GPT, Gemini, and Groq. Exact counts for OpenAI / Llama families via js-tiktoken (cl100k / o200k); character-ratio approximation for Claude (`/3.5`) and Gemini (`/4`). Pricing table hand-curated, refreshed in source. |
+| **AI Safety Scan** | Regex-based scanner for prompt-injection (DAN, "ignore previous", ChatML tokens, role overrides), Unicode tricks (zero-width, RTL override, Cyrillic homoglyphs), PII (email, phone, SSN, PAN, Aadhaar, Luhn-checked credit cards), and leaked credentials (OpenAI / Anthropic / AWS / GitHub / Slack / Google / PEM private keys). Severity-sorted with a redaction copy-button per detection. |
+
 ---
 
 ## How
@@ -147,6 +156,7 @@ Your inputs are stored only in your own browser's `localStorage`. Nothing is sen
 
 Single-file, browser-native tools that don't phone home. Sister projects:
 
+- [Mantra](https://github.com/NakliTechie/Mantra) — multi-provider LLM workbench (companion to BOFH's AI modules)
 - [BabelLocal](https://github.com/NakliTechie/BabelLocal) — translator for 200 languages
 - [VoiceVault](https://github.com/NakliTechie/VoiceVault) — Whisper transcription
 - [SnipLocal](https://github.com/NakliTechie/SnipLocal) — background remover

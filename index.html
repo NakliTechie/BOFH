@@ -7494,7 +7494,13 @@ function init() {
   }
 }
 
+function notifyNakliOSReady() {
+  if (window.parent === window) return;
+  try { window.parent.postMessage({ type: 'naklios:ready' }, '*'); } catch (_) {}
+}
+
 init();
+notifyNakliOSReady();
 </script>
 
 </body>

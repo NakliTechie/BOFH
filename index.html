@@ -1042,6 +1042,19 @@ hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 </div>
 
+<!-- App-styled destructive confirmation -->
+<div class="modal-overlay" id="confirm-overlay" aria-hidden="true">
+  <div class="modal" role="alertdialog" aria-modal="true"
+       aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p id="confirm-message"></p>
+    <div class="modal-foot">
+      <button class="btn" id="confirm-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="confirm-ok" type="button">Continue</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <div class="footer-nav">
@@ -1131,6 +1144,49 @@ function openHelp() { $('help-overlay').classList.add('show'); }
 function closeHelp() { $('help-overlay').classList.remove('show'); }
 window.dismissIntro = dismissIntro;
 window.closeHelp = closeHelp;
+
+function confirmAction({ title, message, confirmLabel = 'Continue' }) {
+  const overlay = $('confirm-overlay');
+  const cancel = $('confirm-cancel');
+  const ok = $('confirm-ok');
+  const previousFocus = document.activeElement;
+  $('confirm-title').textContent = title;
+  $('confirm-message').textContent = message;
+  ok.textContent = confirmLabel;
+  overlay.classList.add('show');
+  overlay.setAttribute('aria-hidden', 'false');
+  cancel.focus();
+
+  return new Promise(resolve => {
+    const finish = accepted => {
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden', 'true');
+      cancel.removeEventListener('click', onCancel);
+      ok.removeEventListener('click', onConfirm);
+      overlay.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKeydown, true);
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+      resolve(accepted);
+    };
+    const onCancel = () => finish(false);
+    const onConfirm = () => finish(true);
+    const onBackdrop = event => { if (event.target === overlay) finish(false); };
+    const onKeydown = event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        finish(false);
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        (document.activeElement === cancel ? ok : cancel).focus();
+      }
+    };
+    cancel.addEventListener('click', onCancel);
+    ok.addEventListener('click', onConfirm);
+    overlay.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKeydown, true);
+  });
+}
 
 /* ---------- theme ---------- */
 function applyTheme(t) {
@@ -7448,13 +7504,17 @@ function init() {
   $('theme-btn').onclick = () => applyTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   $('palette-picker').onchange = e => applyPalette(e.target.value);
   $('help-btn').onclick = openHelp;
-  $('clear-btn').onclick = () => {
-    if (confirm('Clear all BOFH data from this browser? (theme preference is kept)')) {
-      const theme = store.get('_global:theme', '');
-      store.clearAll();
-      if (theme) store.set('_global:theme', theme);
-      location.reload();
-    }
+  $('clear-btn').onclick = async () => {
+    const accepted = await confirmAction({
+      title: 'Clear all BOFH data?',
+      message: 'Saved inputs and module settings will be removed from this browser. Your theme preference will be kept.',
+      confirmLabel: 'Clear data',
+    });
+    if (!accepted) return;
+    const theme = store.get('_global:theme', '');
+    store.clearAll();
+    if (theme) store.set('_global:theme', theme);
+    location.reload();
   };
   // Help modal tabs (top-level — only direct children of .modal)
   document.querySelectorAll('#help-tabs .modal-tab').forEach(t => {
